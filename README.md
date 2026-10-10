@@ -4,7 +4,7 @@ A deterministic systems engineering web extension prototype developed as an unde
 
 ## Abstract & Overview
 
-Modern web browsers operate as heavy execution runtimes. With desktop web page payloads averaging over 2.6 megabytes[cite: 9] and process-isolation architectures assigning an independent operating system process to every domain (consuming a baseline of ~50 MB per empty tab)[cite: 9], multi-tab browsing causes severe resource contention and memory bloat. 
+Modern web browsers operate as heavy execution runtimes. With desktop web page payloads averaging over 2.6 megabytes[cite: 9] and process-isolation architectures assigning an independent operating system process to every domain (consuming a baseline of ~50 MB per empty tab)[cite: 9], multi-tab browsing causes severe resource contention and memory bloat.
 
 Native memory-saving features (such as Chrome Memory Saver or Firefox Tab Unloading) mitigate this by destroying the user's active session state—wiping the DOM, JavaScript heap, and unsubmitted form data[cite: 11]. This project introduces a deterministic **three-stage pipeline** that achieves a **90% reduction in memory footprint per frozen tab** and an **80% total reduction across 50 open tabs**[cite: 13] while maintaining absolute **lossless state preservation**[cite: 13].
 
@@ -20,12 +20,12 @@ Native memory-saving features (such as Chrome Memory Saver or Firefox Tab Unload
 
 ## Tech Stack
 
-* **Extension Runtime:** Web Extensions API (Manifest V3, Service Workers, Content Scripts)
-* **Core Language:** TypeScript / Modern JavaScript (ES2022+)
-* **Build Tooling:** Vite with CRXJS plugin
-* **Compression Engine:** `zstd` compiled to WebAssembly (Wasm) via Emscripten
-* **Concurrency:** Web Workers (`TransferableObjects`)
-* **Storage Layer:** IndexedDB (for binary chunk caching)
+- **Extension Runtime:** Web Extensions API (Manifest V3, Service Workers, Content Scripts)
+- **Core Language:** TypeScript / Modern JavaScript (ES2022+)
+- **Build Tooling:** Vite with CRXJS plugin
+- **Compression Engine:** `zstd` compiled to WebAssembly (Wasm) via Emscripten
+- **Concurrency:** Web Workers (`TransferableObjects`)
+- **Storage Layer:** IndexedDB (for binary chunk caching)
 
 ---
 
@@ -49,6 +49,8 @@ src/
 └── ui/
     ├── popup.html           # Extension dashboard UI
     └── popup.ts             # Real-time metrics and manual tab controls
+
+```
 
 ## 14-Week Development Roadmap
 
