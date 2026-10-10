@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Lossless Tab Optimization (Thesis Prototype)",
+  "version": "0.1.0",
+  "description": "Deterministic lossless tab freeze/restore: BFS capture, zstd-wasm compression, batched lazy hydration.",
+  "minimum_chrome_version": "116",
+  "permissions": ["tabs", "scripting", "storage", "idle", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/background.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.ts"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "src/ui/popup.html",
+    "default_title": "Tab Freeze / Restore"
+  },
+  "icons": {
+    "16": "src/ui/icons/icon16.png",
+    "48": "src/ui/icons/icon48.png",
+    "128": "src/ui/icons/icon128.png"
+  }
+}
