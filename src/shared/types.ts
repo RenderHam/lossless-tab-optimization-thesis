@@ -41,6 +41,12 @@ export const CHUNK_SIZE_BYTES = 64 * 1024; // 64 KiB chunked streaming
 export const HYDRATION_BATCH_SIZE = 100; // max elements per idle frame
 export const LONG_TASK_BUDGET_MS = 50;
 
+/** Message protocol shared by background, content, and popup contexts. */
+export const MSG_CAPTURE_REQUEST = "LTO_CAPTURE_REQUEST";
+export const MSG_CAPTURE_RESPONSE = "LTO_CAPTURE_RESPONSE";
+export const MSG_RESTORE_PUSH = "LTO_RESTORE_PUSH";
+export const MSG_PING = "LTO_PING";
+
 export function heapSnapshotRefFor(tabId: number): string {
   return `tab-${tabId}`;
 }

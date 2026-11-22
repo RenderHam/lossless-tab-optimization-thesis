@@ -74,6 +74,12 @@ export async function hydrateDOM(
   let maxBatchMs = 0;
   let batches = 0;
 
+  // Capture starts at <html>. When hydrating into the live document root,
+  // map that root descriptor onto the existing documentElement instead of
+  // nesting a second <html> inside it.
+  const rootIsHtml = nodes[0]?.tagName === "HTML";
+  const mountIntoDocumentRoot = rootIsHtml && host === doc.documentElement;
+
   // Clear host deterministically.
   while (host.firstChild) host.removeChild(host.firstChild);
 
@@ -81,6 +87,10 @@ export async function hydrateDOM(
     const batchStart = performance.now();
     const batch = nodes.slice(off, off + HYDRATION_BATCH_SIZE);
     for (const desc of batch) {
+      if (mountIntoDocumentRoot && desc.parentId === -1) {
+        built.set(desc.id, host);
+        continue;
+      }
       const node = createNode(desc, doc);
       built.set(desc.id, node);
       if (desc.parentId === -1) {

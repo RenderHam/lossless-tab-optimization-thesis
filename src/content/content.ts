@@ -14,7 +14,14 @@
  */
 
 import type { FlatNodeDescriptor, FormValue, SerializedTabState } from "../shared/types";
-import { heapSnapshotRefFor } from "../shared/types";
+import {
+  heapSnapshotRefFor,
+  MSG_CAPTURE_REQUEST,
+  MSG_CAPTURE_RESPONSE,
+  MSG_PING,
+  MSG_RESTORE_PUSH,
+} from "../shared/types";
+import { hydrateDOM } from "../restoration/restoration";
 
 const TEXT_NODE = 3;
 const COMMENT_NODE = 8;
@@ -184,12 +191,31 @@ export function captureTabState(tabId: number, doc: Document = document, win: Wi
 // Content-script message bridge
 // ---------------------------------------------------------------------------
 
-export const MSG_CAPTURE_REQUEST = "LTO_CAPTURE_REQUEST";
-export const MSG_CAPTURE_RESPONSE = "LTO_CAPTURE_RESPONSE";
-
 if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg && (msg as { type?: string }).type === MSG_CAPTURE_REQUEST) {
+    const type = msg && (msg as { type?: string }).type;
+
+    // Readiness probe used by the background worker before capture/restore.
+    if (type === MSG_PING) {
+      sendResponse({ ok: true });
+      return false;
+    }
+
+    // Restore: background has already decompressed the snapshot; hydrate it
+    // into the live document in 100-node idle batches.
+    if (type === MSG_RESTORE_PUSH) {
+      const state = (msg as { state?: SerializedTabState }).state;
+      if (!state) {
+        sendResponse({ ok: false, error: "RESTORE_PUSH without state" });
+        return true;
+      }
+      hydrateDOM(state, document.documentElement)
+        .then((stats) => sendResponse({ ok: true, stats }))
+        .catch((err) => sendResponse({ ok: false, error: String(err) }));
+      return true;
+    }
+
+    if (type === MSG_CAPTURE_REQUEST) {
       const tabId = (msg as { tabId?: number }).tabId ?? -1;
       try {
         const result = captureTabState(tabId);

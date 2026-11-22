@@ -11,6 +11,9 @@ import fs from "node:fs";
 const typesSrc = fs.readFileSync(new URL("../src/shared/types.ts", import.meta.url), "utf8");
 const codecSrc = fs.readFileSync(new URL("../src/shared/codec.ts", import.meta.url), "utf8");
 const restSrc = fs.readFileSync(new URL("../src/restoration/restoration.ts", import.meta.url), "utf8");
+const bgSrc = fs.readFileSync(new URL("../src/background/background.ts", import.meta.url), "utf8");
+const contentSrc = fs.readFileSync(new URL("../src/content/content.ts", import.meta.url), "utf8");
+const sharedSrc = fs.readFileSync(new URL("../src/shared/types.ts", import.meta.url), "utf8");
 
 function chunkBytes(bytes, chunkSize) {
   const out = [];
@@ -58,6 +61,34 @@ describe("deterministic contracts", () => {
     const k = (i) => `tab-7/chunk-${String(i).padStart(6, "0")}`;
     assert.ok(k(2) < k(10));
     assert.equal(k(3), "tab-7/chunk-000003");
+  });
+  it("restore push is handled by the content script and calls hydrateDOM", () => {
+    assert.match(contentSrc, /MSG_RESTORE_PUSH/);
+    assert.match(contentSrc, /hydrateDOM\(state, document\.documentElement\)/);
+  });
+  it("background reloads discarded tabs, waits for readiness, then pushes state", () => {
+    assert.match(bgSrc, /chrome\.tabs\.reload\(tabId\)/);
+    assert.match(bgSrc, /waitForTabComplete\(tabId\)/);
+    assert.match(bgSrc, /waitForContentScript\(tabId\)/);
+    assert.match(bgSrc, /type: MSG_RESTORE_PUSH/);
+  });
+  it("injection fallback resolves the built path from the runtime manifest", () => {
+    assert.match(bgSrc, /chrome\.runtime\.getManifest\(\)\.content_scripts/);
+  });
+  it("message constants live in shared/types (no content import in background)", () => {
+    assert.match(sharedSrc, /MSG_RESTORE_PUSH/);
+    assert.match(sharedSrc, /MSG_PING/);
+    assert.doesNotMatch(bgSrc, /from "\.\.\/content\/content"/);
+  });
+  it("compression runs in an offscreen document, not the MV3 service worker", () => {
+    const manifest = JSON.parse(fs.readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+    assert.ok(manifest.permissions.includes("offscreen"));
+    const bridge = fs.readFileSync(new URL("../src/workers/compression.bridge.ts", import.meta.url), "utf8");
+    assert.match(bridge, /OFFSCREEN_DOCUMENT/);
+    assert.match(bridge, /LTO_OFFSCREEN_COMPRESS/);
+    const offscreen = fs.readFileSync(new URL("../public/offscreen.js", import.meta.url), "utf8");
+    assert.match(offscreen, /new Worker\("\/compression-worker\.js"\)/);
+    assert.doesNotMatch(bridge, /new Worker\(/);
   });
   it("no ML/AI/probabilistic code in src", () => {
     const all = typesSrc + codecSrc + restSrc;

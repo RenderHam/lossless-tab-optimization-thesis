@@ -14,40 +14,94 @@
 
 import { CompressionBridge } from "../workers/compression.bridge";
 import { decodeUtf8, encodeUtf8, stableStringify } from "../shared/codec";
-import type { SerializedTabState } from "../shared/types";
+import type { HydrationStats } from "../restoration/restoration";
+import {
+  MSG_CAPTURE_REQUEST,
+  MSG_PING,
+  MSG_RESTORE_PUSH,
+  type SerializedTabState,
+} from "../shared/types";
 import { deleteTabSnapshot, readAllChunks, readMeta, writeCompressedChunks } from "../storage/indexeddb";
-import { MSG_CAPTURE_REQUEST, MSG_CAPTURE_RESPONSE } from "../content/content";
 
 // --- Explicit deterministic policy constants -------------------------------
 export const INACTIVITY_THRESHOLD_MIN = 15; // minutes before a tab is eligible
 export const CHECK_ALARM_NAME = "lto-sweep";
 export const CHECK_PERIOD_MIN = 5;
 
-const bridge = new CompressionBridge(new URL("../workers/compression.worker", import.meta.url));
+const bridge = new CompressionBridge();
 
 async function ensureBridge(): Promise<void> {
   if (!bridge.isReady) await bridge.init();
 }
 
+// --- Content-script readiness helpers ---------------------------------------
+
+/** Inject the built content script path declared by the (rewritten) manifest. */
+async function injectContentScript(tabId: number): Promise<void> {
+  const file = chrome.runtime.getManifest().content_scripts?.[0]?.js?.[0];
+  if (!file) throw new Error("no content script declared in manifest");
+  await chrome.scripting.executeScript({ target: { tabId }, files: [file] });
+}
+
+/**
+ * Poll the content script with a fixed 100 ms interval until it answers or a
+ * fixed 5 s budget expires. Deterministic bounds — no adaptive timing.
+ */
+async function waitForContentScript(tabId: number, timeoutMs = 5000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = (await chrome.tabs.sendMessage(tabId, { type: MSG_PING })) as { ok?: boolean } | undefined;
+      if (res?.ok) return;
+    } catch {
+      // Not listening yet — keep polling within the fixed budget.
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`content script not ready in tab ${tabId}`);
+}
+
+async function waitForTabComplete(tabId: number, timeoutMs = 10000): Promise<void> {
+  const current = await chrome.tabs.get(tabId);
+  if (current.status === "complete") return;
+  await new Promise<void>((resolve, reject) => {
+    const onUpdated = (id: number, info: chrome.tabs.TabChangeInfo) => {
+      if (id === tabId && info.status === "complete") {
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        resolve();
+      }
+    };
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      reject(new Error(`tab ${tabId} did not finish loading`));
+    }, timeoutMs);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+  });
+}
+
 // --- Stage 1: capture -------------------------------------------------------
 
 async function captureTab(tabId: number): Promise<SerializedTabState> {
+  // Normally the static content script is already present; inject only if the
+  // readiness probe fails after the fixed budget.
+  if (!(await ping(tabId))) await injectContentScript(tabId);
+  await waitForContentScript(tabId);
+
   const res = (await chrome.tabs.sendMessage(tabId, { type: MSG_CAPTURE_REQUEST, tabId })) as
-    | { type: string; ok: boolean; state?: SerializedTabState; error?: string }
+    | { ok: boolean; state?: SerializedTabState; error?: string }
     | undefined;
-  if (res?.ok && res.state) return res.state;
-  // Fallback: programmatic injection (covers pages where the static content
-  // script was blocked). Deterministic — same module, same result.
-  await chrome.scripting.executeScript({ target: { tabId }, files: ["src/content/content"] });
-  const retry = (await chrome.tabs.sendMessage(tabId, { type: MSG_CAPTURE_REQUEST, tabId })) as {
-    type: string;
-    ok: boolean;
-    state?: SerializedTabState;
-    error?: string;
-  };
-  if (!retry?.ok || !retry.state) throw new Error(retry?.error ?? `capture failed for tab ${tabId}`);
-  void MSG_CAPTURE_RESPONSE;
-  return retry.state;
+  if (!res?.ok || !res.state) throw new Error(res?.error ?? `capture failed for tab ${tabId}`);
+  return res.state;
+}
+
+async function ping(tabId: number): Promise<boolean> {
+  try {
+    const res = (await chrome.tabs.sendMessage(tabId, { type: MSG_PING })) as { ok?: boolean } | undefined;
+    return res?.ok === true;
+  } catch {
+    return false;
+  }
 }
 
 // --- Stage 2: compress + store ----------------------------------------------
@@ -80,22 +134,33 @@ export async function freezeTab(tabId: number): Promise<{ rawBytes: number; comp
 
 // --- Stage 3b: lazy restore ---------------------------------------------------
 
-export async function restoreTab(tabId: number): Promise<SerializedTabState> {
+export interface RestoreOutcome {
+  state: SerializedTabState;
+  hydration: HydrationStats | null;
+}
+
+export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   await ensureBridge();
+
+  // 1. Read 64 KiB chunks from IndexedDB in order and decompress in the worker.
   const { data } = await readAllChunks(tabId);
   const raw = await bridge.decompress(data);
   const state = JSON.parse(decodeUtf8(raw)) as SerializedTabState;
+
+  // 2. A discarded tab has no renderer — reload it so the content script runs.
   const tab = await chrome.tabs.get(tabId);
-  if (tab.discarded && tab.url) await chrome.tabs.reload(tabId);
-  // Hydration itself runs in the content context after reload; here we hand
-  // the state over via a reload + inject sequence handled by the caller.
-  // For an already-live tab, push state directly:
-  try {
-    await chrome.tabs.sendMessage(tabId, { type: "LTO_RESTORE_PUSH", state });
-  } catch {
-    // Tab not yet listening (mid-reload) — popup will retry on completion.
+  if (tab.discarded) {
+    await chrome.tabs.reload(tabId);
+    await waitForTabComplete(tabId);
   }
-  return state;
+  await waitForContentScript(tabId);
+
+  // 3. Push the state to the content script, which hydrates it in batches.
+  const res = (await chrome.tabs.sendMessage(tabId, { type: MSG_RESTORE_PUSH, state })) as
+    | { ok: boolean; stats?: HydrationStats; error?: string }
+    | undefined;
+  if (!res?.ok) throw new Error(res?.error ?? "hydration failed in content script");
+  return { state, hydration: res.stats ?? null };
 }
 
 export async function isFrozen(tabId: number): Promise<boolean> {
@@ -146,7 +211,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (type === "LTO_RESTORE_TAB") {
     restoreTab((msg as { tabId: number }).tabId)
-      .then((state) => sendResponse({ ok: true, state }))
+      .then((outcome) => sendResponse({ ok: true, ...outcome }))
       .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
     return true;
   }
@@ -157,12 +222,4 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   return false;
-});
-
-// Re-push state when a frozen tab finishes reloading.
-chrome.tabs.onUpdated.addListener((_tabId, info, _tab) => {
-  if (info.status === "complete") {
-    // Popup-driven restore flow re-sends LTO_RESTORE_TAB itself; hook kept
-    // minimal and deterministic.
-  }
 });

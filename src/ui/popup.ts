@@ -36,8 +36,16 @@ async function refresh(): Promise<void> {
     restore.textContent = "Restore";
     restore.onclick = async () => {
       if (t.id === undefined) return;
-      const r = await send<{ ok: boolean; error?: string }>("LTO_RESTORE_TAB", t.id);
-      log(r.ok ? `restore requested for tab ${t.id}` : `restore failed: ${r.error}`);
+      const r = await send<{
+        ok: boolean;
+        hydration?: { totalNodes: number; batches: number; maxBatchMs: number } | null;
+        error?: string;
+      }>("LTO_RESTORE_TAB", t.id);
+      log(
+        r.ok
+          ? `restored tab ${t.id}: ${r.hydration?.totalNodes ?? 0} nodes in ${r.hydration?.batches ?? 0} batches`
+          : `restore failed: ${r.error}`,
+      );
       await refresh();
     };
     row.append(label, freeze, restore);

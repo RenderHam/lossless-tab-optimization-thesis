@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LTO compression host</title>
+  </head>
+  <body>
+    <!--
+      MV3 service workers cannot create dedicated Workers. This offscreen
+      document is a normal extension page whose only job is to host the
+      zstd-wasm worker and answer compression requests from the background.
+      It has no visible UI.
+    -->
+    <script src="/offscreen.js"></script>
+  </body>
+</html>
