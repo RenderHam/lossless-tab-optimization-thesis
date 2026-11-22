@@ -42,7 +42,7 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 
 - `npx tsc --noEmit` → clean
 - `npx vite build` → succeeds, output in `dist/`
-- `node --test tests/*.test.mjs` → 15/15 pass
+- `node --test tests/*.test.mjs` → 25/25 pass
 - `node benchmarks/run.mjs` → 5000 nodes: 557 KB JSON, 9 chunks, 50 batches
 - Vendored zstd wasm round-trip verified in a Node VM harness:
   14,500 B → 47 B compressed → byte-exact restoration
@@ -58,8 +58,9 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 ```sh
 npm install            # once per machine
 npx tsc --noEmit       # typecheck
-node --test tests/*.test.mjs   # contract tests
+node --test tests/*.mjs        # contract + benchmark tests
 node benchmarks/run.mjs        # micro-benchmark
+node benchmarks/report.mjs results.json   # summarize exported run
 npx vite build         # extension bundle → dist/
 ```
 
@@ -84,20 +85,31 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
 - Icons are generated placeholder PNGs (`src/ui/icons/`), replace before defense.
 - `PROMPT.md` citation cleanup was committed together with the skeleton.
 
-## NEXT PHASE (planned, NOT started — wait for owner's go-ahead)
+## AUTOMATED BENCHMARK (implemented)
 
-**Immediate next step (before the memory phase):** load `dist/` unpacked in
-Chrome and smoke test Freeze → Restore end to end; confirm zstd worker loads
-under MV3 CSP and that form/scroll state survives. Then the memory phase:
+Files: `src/profiling/memory.ts`, `src/profiling/benchmark.ts`,
+`benchmarks/lib.mjs`, `benchmarks/report.mjs`, `tests/benchmark.test.mjs`.
 
-**Memory Measurement Phase:** real-world RSS/footprint validation of the
-90%-per-tab / 80%-across-50-tabs thesis targets.
+- Popup → **Benchmark all tabs**: samples each eligible tab's renderer RSS
+  (`chrome.processes.getProcessIdForTab` + `getProcessInfo(pid, true)`,
+  `privateMemory`), freezes, samples again, restores, samples again.
+- Records exact byte counts, phase timings, hydration stats, and byte-exact
+  fidelity (`stableStringify` of original state vs reconstructed state).
+- Results saved to `chrome.storage.local["lto-bench-latest"]`; popup shows a
+  summary and **Download JSON** exports the full run.
+- `node benchmarks/report.mjs <results.json>` prints a per-tab table and fails
+  if fidelity drops or any hydration batch exceeds 50 ms.
+- `chrome.processes` is a Chrome **Dev-channel** API: if unavailable, runs
+  still record compression/fidelity/timings and flag `memoryApiAvailable: false`;
+  use Chrome Task Manager manually for RSS in that case.
 
-1. Instrument `freezeTab`/`restoreTab` with `performance.now()` timings +
-   `chrome.processes`/`chrome.system.memory` readings where permitted.
-2. Build a reproducible 50-tab fixture set and record before/after memory.
-3. Extend `tests/` + `benchmarks/` with fidelity checks (byte-exact
-   stable-stringify comparison of pre-freeze vs post-restore state).
-4. Log results to a `results/` directory for the thesis write-up (Weeks 13–14).
+## NEXT STEPS
 
-Do not implement any of the above until explicitly instructed.
+1. Load `dist/` unpacked (manifest changed — full reload required).
+2. Smoke test Freeze → Restore once.
+3. Open ~50 real http(s) tabs, click **Benchmark all tabs**, download JSON,
+   run `benchmarks/report.mjs`, and put the numbers in the thesis (Weeks 13–14).
+4. Commit benchmark results under `results/` once verified.
+
+Memory-phase code is implemented; the actual measurement still needs a real
+Chrome run.

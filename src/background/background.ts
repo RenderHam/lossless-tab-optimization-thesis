@@ -22,6 +22,8 @@ import {
   type SerializedTabState,
 } from "../shared/types";
 import { deleteTabSnapshot, readAllChunks, readMeta, writeCompressedChunks } from "../storage/indexeddb";
+import { BENCH_RESULT_KEY, createBenchmark, type BenchmarkRun } from "../profiling/benchmark";
+import { sampleAllRenderers } from "../profiling/memory";
 
 // --- Explicit deterministic policy constants -------------------------------
 export const INACTIVITY_THRESHOLD_MIN = 15; // minutes before a tab is eligible
@@ -106,14 +108,43 @@ async function ping(tabId: number): Promise<boolean> {
 
 // --- Stage 2: compress + store ----------------------------------------------
 
-export async function freezeTab(tabId: number): Promise<{ rawBytes: number; compressedBytes: number }> {
+export interface FreezeOutcome {
+  rawBytes: number;
+  compressedBytes: number;
+  /** Internal: used by the benchmark for fidelity, stripped from popup replies. */
+  stateJson: string;
+  timings: {
+    captureMs: number;
+    compressMs: number;
+    storeMs: number;
+    totalMs: number;
+  };
+}
+
+export async function freezeTab(tabId: number): Promise<FreezeOutcome> {
+  const started = performance.now();
   await ensureBridge();
   const tab = await chrome.tabs.get(tabId);
-  if (tab.discarded) return { rawBytes: 0, compressedBytes: 0 }; // already frozen
+  if (tab.discarded) {
+    return {
+      rawBytes: 0,
+      compressedBytes: 0,
+      stateJson: "",
+      timings: { captureMs: 0, compressMs: 0, storeMs: 0, totalMs: 0 },
+    };
+  }
+
+  const captureStart = performance.now();
   const state = await captureTab(tabId);
   const json = stableStringify(state);
   const raw = encodeUtf8(json);
+  const captureMs = performance.now() - captureStart;
+
+  const compressStart = performance.now();
   const compressed = await bridge.compress(raw);
+  const compressMs = performance.now() - compressStart;
+
+  const storeStart = performance.now();
   await writeCompressedChunks(tabId, compressed, {
     tabId,
     url: state.url,
@@ -123,13 +154,21 @@ export async function freezeTab(tabId: number): Promise<{ rawBytes: number; comp
     scrollX: state.scrollPosition.x,
     scrollY: state.scrollPosition.y,
   });
+  const storeMs = performance.now() - storeStart;
+
   // --- Stage 3a: terminate renderer process --------------------------------
   await chrome.tabs.discard(tabId);
   const saved = (await chrome.storage.local.get("lto-frozen")) as { "lto-frozen"?: number[] };
   const frozen = new Set(saved["lto-frozen"] ?? []);
   frozen.add(tabId);
   await chrome.storage.local.set({ "lto-frozen": [...frozen] });
-  return { rawBytes: raw.length, compressedBytes: compressed.length };
+
+  return {
+    rawBytes: raw.length,
+    compressedBytes: compressed.length,
+    stateJson: json,
+    timings: { captureMs, compressMs, storeMs, totalMs: performance.now() - started },
+  };
 }
 
 // --- Stage 3b: lazy restore ---------------------------------------------------
@@ -137,14 +176,19 @@ export async function freezeTab(tabId: number): Promise<{ rawBytes: number; comp
 export interface RestoreOutcome {
   state: SerializedTabState;
   hydration: HydrationStats | null;
+  decompressMs: number;
+  totalMs: number;
 }
 
 export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
+  const started = performance.now();
   await ensureBridge();
 
   // 1. Read 64 KiB chunks from IndexedDB in order and decompress in the worker.
   const { data } = await readAllChunks(tabId);
+  const decompressStart = performance.now();
   const raw = await bridge.decompress(data);
+  const decompressMs = performance.now() - decompressStart;
   const state = JSON.parse(decodeUtf8(raw)) as SerializedTabState;
 
   // 2. A discarded tab has no renderer — reload it so the content script runs.
@@ -160,12 +204,20 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
     | { ok: boolean; stats?: HydrationStats; error?: string }
     | undefined;
   if (!res?.ok) throw new Error(res?.error ?? "hydration failed in content script");
-  return { state, hydration: res.stats ?? null };
+  return { state, hydration: res.stats ?? null, decompressMs, totalMs: performance.now() - started };
 }
 
 export async function isFrozen(tabId: number): Promise<boolean> {
   const meta = await readMeta(tabId).catch(() => undefined);
   return meta !== undefined;
+}
+
+/** Benchmark runner, created once with the real freeze/restore implementations. */
+const runBenchmark = createBenchmark({ freezeTab, restoreTab });
+
+export async function getLatestBenchmark(): Promise<BenchmarkRun | null> {
+  const stored = (await chrome.storage.local.get(BENCH_RESULT_KEY)) as Record<string, BenchmarkRun>;
+  return stored[BENCH_RESULT_KEY] ?? null;
 }
 
 // --- Inactivity sweep (explicit rule, no prediction) --------------------------
@@ -205,13 +257,42 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const type = (msg as { type?: string }).type;
   if (type === "LTO_FREEZE_TAB") {
     freezeTab((msg as { tabId: number }).tabId)
-      .then((r) => sendResponse({ ok: true, ...r }))
+      .then((r) =>
+        sendResponse({
+          ok: true,
+          rawBytes: r.rawBytes,
+          compressedBytes: r.compressedBytes,
+          timings: r.timings,
+        }),
+      )
       .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
     return true;
   }
   if (type === "LTO_RESTORE_TAB") {
     restoreTab((msg as { tabId: number }).tabId)
-      .then((outcome) => sendResponse({ ok: true, ...outcome }))
+      .then((outcome) => sendResponse({ ok: true, hydration: outcome.hydration, totalMs: outcome.totalMs }))
+      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
+    return true;
+  }
+  if (type === "LTO_MEMORY_SNAPSHOT") {
+    sampleAllRenderers()
+      .then((sample) => sendResponse({ ok: true, sample }))
+      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
+    return true;
+  }
+  if (type === "LTO_BENCH_RUN") {
+    const tabIds = (msg as { tabIds?: number[] }).tabIds ?? [];
+    runBenchmark(tabIds)
+      .then(async (run) => {
+        await chrome.storage.local.set({ [BENCH_RESULT_KEY]: run });
+        sendResponse({ ok: true, run });
+      })
+      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
+    return true;
+  }
+  if (type === "LTO_BENCH_LATEST") {
+    getLatestBenchmark()
+      .then((run) => sendResponse({ ok: true, run }))
       .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
     return true;
   }

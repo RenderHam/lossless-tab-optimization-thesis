@@ -52,6 +52,21 @@ src/
 
 ```
 
+## Automated Benchmarking
+
+Load `dist/` unpacked in Chrome, open a set of real http(s) tabs, then use the
+popup's **Benchmark all tabs** button. It samples per-tab renderer RSS via
+`chrome.processes`, freezes and restores each tab, verifies byte-exact state
+fidelity, and reports compression ratios and hydration timings. Export the run
+as JSON with **Download JSON**, then summarize it with:
+
+```sh
+node benchmarks/report.mjs <results.json>
+```
+
+(`chrome.processes` is a Chrome Dev-channel API; if unavailable, the run still
+reports compression/fidelity and flags the missing RSS data.)
+
 ## 14-Week Development Roadmap
 
 - Weeks 1–3 (State Capture Engine): Content script injection, BFS DOM flat serialization, and form input extraction.
