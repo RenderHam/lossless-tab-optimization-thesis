@@ -287,7 +287,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (type === "LTO_BENCH_RUN") {
-    const tabIds = (msg as { tabIds?: number[] }).tabIds ?? [];
+    const tabIds = (msg as { tabIds?: number[] }).tabIds;
     runBenchmark(tabIds)
       .then(async (run) => {
         await chrome.storage.local.set({ [BENCH_RESULT_KEY]: run });

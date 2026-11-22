@@ -35,6 +35,12 @@ describe("benchmark wiring", () => {
     assert.match(memorySrc, /getProcessIdForTab/);
     assert.match(memorySrc, /privateMemory/);
   });
+  it("benchmark re-resolves tab IDs in background and skips undiscardable tabs", () => {
+    assert.match(benchSrc, /chrome\.tabs\.query\(\{\}\)/);
+    assert.match(benchSrc, /!t\.active/);
+    assert.match(benchSrc, /!t\.pinned/);
+    assert.doesNotMatch(benchSrc, /chrome\.tabs\.get\(/);
+  });
   it("benchmark samples before/after freeze and checks fidelity", () => {
     assert.match(benchSrc, /sampleTabRenderer\(tabId\)/);
     assert.match(benchSrc, /freeze.stateJson === stableStringify\(restore.state\)/);

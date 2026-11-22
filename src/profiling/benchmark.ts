@@ -118,14 +118,32 @@ export function summarize(trials: BenchmarkTrial[]): BenchmarkSummary {
   };
 }
 
-/** Fixed-sequence runner. Continues past individual tab failures. */
+/**
+ * Fixed-sequence runner. Tab IDs are re-resolved from a fresh tabs.query in
+ * the background: IDs sent by the popup can be stale, and Chrome refuses to
+ * discard active/pinned/audible tabs, so those are excluded explicitly.
+ */
 export function createBenchmark(hooks: BenchmarkHooks) {
-  return async function runBenchmark(tabIds: number[]): Promise<BenchmarkRun> {
+  return async function runBenchmark(requestedIds?: number[]): Promise<BenchmarkRun> {
     const trials: BenchmarkTrial[] = [];
     const memoryApiAvailable = isMemoryApiAvailable();
 
+    const allTabs = await chrome.tabs.query({});
+    const eligible = allTabs.filter(
+      (t) =>
+        t.id !== undefined &&
+        !t.discarded &&
+        !t.active &&
+        !t.pinned &&
+        !t.audible &&
+        /^https?:\/\//.test(t.url ?? ""),
+    );
+    const allowed = new Set(eligible.map((t) => t.id as number));
+    const tabIds = (requestedIds ?? [...allowed]).filter((id) => allowed.has(id));
+
     for (const tabId of tabIds) {
-      const tab = await chrome.tabs.get(tabId);
+      const tab = eligible.find((t) => t.id === tabId);
+      if (!tab) continue;
       const trial: BenchmarkTrial = {
         tabId,
         url: tab.url ?? "",
