@@ -34,10 +34,21 @@ function callWorker(op, bytes) {
   });
 }
 
-function asBytes(value) {
-  if (value instanceof Uint8Array) return value;
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  return new Uint8Array(0);
+// Chrome runtime messaging is JSON-serialized: binary must travel as base64.
+function base64ToBytes(encoded) {
+  const binary = atob(encoded || "");
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  const windowSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += windowSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + windowSize));
+  }
+  return btoa(binary);
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -48,9 +59,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (type === "LTO_OFFSCREEN_COMPRESS" || type === "LTO_OFFSCREEN_DECOMPRESS") {
     const op = type === "LTO_OFFSCREEN_COMPRESS" ? "compress" : "decompress";
-    const input = asBytes(message.payload);
+    const input = base64ToBytes(message.payloadB64);
     callWorker(op, input)
-      .then((out) => sendResponse({ ok: true, result: out }))
+      .then((out) => sendResponse({ ok: true, resultB64: bytesToBase64(out) }))
       .catch((error) => sendResponse({ ok: false, error: String(error) }));
     return true;
   }

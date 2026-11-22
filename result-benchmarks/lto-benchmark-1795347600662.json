@@ -1,0 +1,94 @@
+{
+  "memoryApiAvailable": false,
+  "summary": {
+    "failures": 3,
+    "fidelityFailed": 0,
+    "fidelityPassed": 0,
+    "maxBatchMs": 0,
+    "meanCompressionPercent": 0,
+    "meanSavedPercentPerTab": null,
+    "overBudgetTrials": 0,
+    "totalBeforeBytes": 0,
+    "totalSavedBytes": 0,
+    "totalSavedPercent": null,
+    "trialCount": 3
+  },
+  "timestamp": 1795347600662,
+  "trials": [
+    {
+      "afterRestoreMemory": null,
+      "beforeMemory": null,
+      "compressedBytes": 0,
+      "compressionPercent": 0,
+      "error": "SyntaxError: Unexpected end of JSON input",
+      "fidelity": false,
+      "frozenMemory": null,
+      "hydration": null,
+      "overBudget": false,
+      "rawBytes": 0,
+      "savedBytes": null,
+      "savedPercent": null,
+      "tabId": 1603778670,
+      "timings": {
+        "captureMs": 0,
+        "compressMs": 0,
+        "decompressMs": 0,
+        "freezeTotalMs": 0,
+        "restoreTotalMs": 0,
+        "storeMs": 0
+      },
+      "title": "asd - Google Search",
+      "url": "https://www.google.com/search?q=asd&oq=asd&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIKCAEQABixAxiABDIKCAIQABixAxiABDIKCAMQABixAxiABDIKCAQQABixAxiABDINCAUQABiDARixAxiABDINCAYQLhiDARixAxiABDIHCAcQABiABDIHCAgQABiABDIHCAkQABiABNIBBzcxMGowajeoAgCwAgA&sourceid=chrome&source=chrome.ob&ie=UTF-8&sei=itMCa5S4LL-l2roP7Kan2Qo"
+    },
+    {
+      "afterRestoreMemory": null,
+      "beforeMemory": null,
+      "compressedBytes": 0,
+      "compressionPercent": 0,
+      "error": "SyntaxError: Unexpected end of JSON input",
+      "fidelity": false,
+      "frozenMemory": null,
+      "hydration": null,
+      "overBudget": false,
+      "rawBytes": 0,
+      "savedBytes": null,
+      "savedPercent": null,
+      "tabId": 1603778671,
+      "timings": {
+        "captureMs": 0,
+        "compressMs": 0,
+        "decompressMs": 0,
+        "freezeTotalMs": 0,
+        "restoreTotalMs": 0,
+        "storeMs": 0
+      },
+      "title": "YouTube",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "afterRestoreMemory": null,
+      "beforeMemory": null,
+      "compressedBytes": 0,
+      "compressionPercent": 0,
+      "error": "SyntaxError: Unexpected end of JSON input",
+      "fidelity": false,
+      "frozenMemory": null,
+      "hydration": null,
+      "overBudget": false,
+      "rawBytes": 0,
+      "savedBytes": null,
+      "savedPercent": null,
+      "tabId": 1603778672,
+      "timings": {
+        "captureMs": 0,
+        "compressMs": 0,
+        "decompressMs": 0,
+        "freezeTotalMs": 0,
+        "restoreTotalMs": 0,
+        "storeMs": 0
+      },
+      "title": "Wikipedia",
+      "url": "https://www.wikipedia.org/"
+    }
+  ]
+}

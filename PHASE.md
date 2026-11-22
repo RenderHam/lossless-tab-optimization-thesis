@@ -71,8 +71,12 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
 - Imports are extensionless (`../shared/types`, not `../shared/types.ts`).
 - `compression.bridge.ts` casts `SharedArrayBuffer` → `ArrayBuffer` on slice.
 - MV3 service worker has no `Worker` constructor: compression MUST run in
-  the offscreen document. Bridge relays via `chrome.runtime.sendMessage`;
-  only the offscreen→worker hop is zero-copy (extension messaging copies).
+  the offscreen document. Bridge relays via `chrome.runtime.sendMessage`.
+- **Chrome extension messaging is JSON-serialized, not structured clone.**
+  Uint8Array payloads arrive as plain objects, so all binary crossing
+  `runtime.sendMessage` is base64-encoded (`bytesToBase64`/`base64ToBytes`).
+  Only the offscreen→worker hop is zero-copy. Symptom of getting this wrong:
+  every benchmark trial fails with `SyntaxError: Unexpected end of JSON input`.
 - `@bokuweb/zstd-wasm` npm web entry is broken (points to nonexistent
   `dist/web/lib/index.js`); the working Emscripten glue + wasm are vendored in
   `public/zstd/`, driven by the classic worker `public/compression-worker.js`.

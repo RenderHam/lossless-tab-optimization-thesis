@@ -4,14 +4,16 @@
  * MV3 service workers have no `Worker` constructor, so compression is hosted
  * in an offscreen document (public/offscreen.html). This class ensures that
  * document exists and relays compress/decompress requests to it via
- * chrome.runtime messages. Inside the offscreen document the payload is still
- * transferred to the zstd worker as a zero-copy Transferable; the extension
- * message hop itself is a structured clone (documented limitation).
+ * chrome.runtime messages. Chrome serializes extension messages as JSON, so
+ * binary payloads are base64-encoded on this hop; the offscreen→worker hop
+ * remains a zero-copy Transferable transfer.
  */
+
+import { base64ToBytes, bytesToBase64 } from "../shared/codec";
 
 interface CompressionReply {
   ok: boolean;
-  result?: Uint8Array;
+  resultB64?: string;
   error?: string;
 }
 
@@ -47,7 +49,10 @@ export class CompressionBridge {
   }
 
   private async call(type: string, payload?: Uint8Array): Promise<CompressionReply> {
-    const reply = (await chrome.runtime.sendMessage({ type, payload })) as CompressionReply | undefined;
+    const reply = (await chrome.runtime.sendMessage({
+      type,
+      payloadB64: payload ? bytesToBase64(payload) : undefined,
+    })) as CompressionReply | undefined;
     if (!reply) throw new Error(`no reply from offscreen document for ${type}`);
     if (!reply.ok) throw new Error(reply.error ?? `${type} failed`);
     return reply;
@@ -55,11 +60,13 @@ export class CompressionBridge {
 
   async compress(raw: Uint8Array): Promise<Uint8Array> {
     const reply = await this.call("LTO_OFFSCREEN_COMPRESS", raw);
-    return new Uint8Array(reply.result ?? new Uint8Array(0));
+    if (!reply.resultB64) throw new Error("offscreen compression returned no data");
+    return base64ToBytes(reply.resultB64);
   }
 
   async decompress(compressed: Uint8Array): Promise<Uint8Array> {
     const reply = await this.call("LTO_OFFSCREEN_DECOMPRESS", compressed);
-    return new Uint8Array(reply.result ?? new Uint8Array(0));
+    if (!reply.resultB64) throw new Error("offscreen decompression returned no data");
+    return base64ToBytes(reply.resultB64);
   }
 }

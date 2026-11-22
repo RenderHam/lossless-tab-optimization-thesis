@@ -37,6 +37,27 @@ export function decodeUtf8(bytes: Uint8Array): string {
   return decoder.decode(bytes);
 }
 
+/**
+ * Chrome extension messaging JSON-serializes messages, so Uint8Array values
+ * must be encoded as base64 strings before crossing runtime.sendMessage.
+ * (Worker postMessage still uses zero-copy TransferableObjects.)
+ */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const windowSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += windowSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + windowSize));
+  }
+  return btoa(binary);
+}
+
+export function base64ToBytes(encoded: string): Uint8Array {
+  const binary = atob(encoded);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
 /** Split bytes into fixed-size chunks (last chunk may be short). Deterministic. */
 export function chunkBytes(bytes: Uint8Array, chunkSize: number): Uint8Array[] {
   if (!Number.isInteger(chunkSize) || chunkSize <= 0) {

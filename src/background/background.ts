@@ -142,6 +142,7 @@ export async function freezeTab(tabId: number): Promise<FreezeOutcome> {
 
   const compressStart = performance.now();
   const compressed = await bridge.compress(raw);
+  if (compressed.length === 0) throw new Error("zstd compression returned 0 bytes");
   const compressMs = performance.now() - compressStart;
 
   const storeStart = performance.now();
@@ -185,9 +186,14 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   await ensureBridge();
 
   // 1. Read 64 KiB chunks from IndexedDB in order and decompress in the worker.
-  const { data } = await readAllChunks(tabId);
+  const { meta, data } = await readAllChunks(tabId);
   const decompressStart = performance.now();
   const raw = await bridge.decompress(data);
+  if (raw.length === 0) {
+    throw new Error(
+      `empty decompression: ${data.length} bytes in ${meta.chunkCount} chunks (stored ${meta.compressedBytes})`,
+    );
+  }
   const decompressMs = performance.now() - decompressStart;
   const state = JSON.parse(decodeUtf8(raw)) as SerializedTabState;
 

@@ -93,6 +93,9 @@ async function runBenchmark(): Promise<void> {
   }
   renderSummary(r.run);
   log(`benchmark done: ${r.run.summary.failures} failures, fidelity ${r.run.summary.fidelityPassed}/${r.run.summary.trialCount}`);
+  for (const t of r.run.trials.filter((trial) => trial.error).slice(0, 5)) {
+    log(`tab ${t.tabId}: ${t.error}`);
+  }
   await refresh();
 }
 
