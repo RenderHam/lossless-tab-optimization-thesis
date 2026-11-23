@@ -29,27 +29,42 @@ Native memory-saving features (such as Chrome Memory Saver or Firefox Tab Unload
 
 ---
 
+## Development
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the full setup, build,
+loading, debugging, testing, benchmarking, and troubleshooting guide.
+
+Quick start:
+
+```sh
+npm install
+npm run build     # typecheck + Vite build → dist/
+npm test          # contract tests
+```
+
+Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
+Rebuild and click Reload after every source change.
+
 ## Project Structure
 
 ```text
-lossless-tab-optimization/
-├── manifest.json            # Extension configuration (Manifest V3)
-├── package.json             # Dependencies and build scripts
-├── tsconfig.json            # TypeScript compiler options
-├── vite.config.ts           # Vite build configuration
+manifest.json / vite.config.ts / tsconfig.json
 src/
-├── background/
-│   └── background.ts        # Service worker orchestrating tab lifecycle & injection
-├── content/
-│   └── content.ts           # BFS DOM traversal and form state extractor
-├── workers/
-│   └── compression.worker.ts # Wasm zstd compression/decompression bridge
-├── storage/
-│   └── indexeddb.ts         # Binary chunk manager for tab payloads
-└── ui/
-    ├── popup.html           # Extension dashboard UI
-    └── popup.ts             # Real-time metrics and manual tab controls
-
+  shared/        types, codec (stable stringify, base64 helpers, chunking)
+  content/       BFS DOM capture, form/scroll extraction, message handlers
+  background/    freeze/restore orchestration, auto-restore, benchmark messages
+  workers/       compression.bridge.ts (offscreen client)
+  restoration/   batched hydration, form restore, lazy Proxy heap
+  storage/       IndexedDB chunk store (idb-keyval)
+  profiling/     metrics, memory sampler, benchmark runner
+  ui/            popup dashboard
+public/
+  offscreen.html / offscreen.js   hidden host for the zstd worker
+  compression-worker.js           classic Worker using vendored zstd
+  zstd/                           vendored Emscripten glue + wasm
+benchmarks/      micro-benchmark, report script, shared math
+tests/           contract, messaging, and benchmark tests
+PHASE.md         continuity log (verified state, known issues, next steps)
 ```
 
 ## Automated Benchmarking
