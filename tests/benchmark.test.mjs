@@ -46,6 +46,11 @@ describe("benchmark wiring", () => {
     assert.match(benchSrc, /freeze.stateJson === stableStringify\(restore.state\)/);
     assert.match(benchSrc, /LONG_TASK_BUDGET_MS/);
   });
+  it("tab lookup uses the same query API as the benchmark, with labelled failures", () => {
+    assert.match(bgSrc, /async function findTab/);
+    assert.match(bgSrc, /chrome\.tabs\.query\(\{\}\)/);
+    assert.match(bgSrc, /discard failed for tab/);
+  });
   it("reopening a discarded frozen tab triggers automatic restore", () => {
     assert.match(bgSrc, /chrome\.tabs\.onActivated\.addListener/);
     assert.match(bgSrc, /autoRestoreOnActivation/);

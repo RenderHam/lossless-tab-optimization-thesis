@@ -64,7 +64,7 @@ async function waitForContentScript(tabId: number, timeoutMs = 5000): Promise<vo
 }
 
 async function waitForTabComplete(tabId: number, timeoutMs = 10000): Promise<void> {
-  const current = await chrome.tabs.get(tabId);
+  const current = await findTab(tabId);
   if (current.status === "complete") return;
   await new Promise<void>((resolve, reject) => {
     const onUpdated = (id: number, info: chrome.tabs.TabChangeInfo) => {
@@ -121,10 +121,17 @@ export interface FreezeOutcome {
   };
 }
 
+async function findTab(tabId: number): Promise<chrome.tabs.Tab> {
+  const tabs = await chrome.tabs.query({});
+  const tab = tabs.find((t) => t.id === tabId);
+  if (!tab) throw new Error(`tab ${tabId} not found in tabs.query`);
+  return tab;
+}
+
 export async function freezeTab(tabId: number): Promise<FreezeOutcome> {
   const started = performance.now();
   await ensureBridge();
-  const tab = await chrome.tabs.get(tabId);
+  const tab = await findTab(tabId);
   if (tab.discarded) {
     return {
       rawBytes: 0,
@@ -158,7 +165,11 @@ export async function freezeTab(tabId: number): Promise<FreezeOutcome> {
   const storeMs = performance.now() - storeStart;
 
   // --- Stage 3a: terminate renderer process --------------------------------
-  await chrome.tabs.discard(tabId);
+  try {
+    await chrome.tabs.discard(tabId);
+  } catch (err) {
+    throw new Error(`discard failed for tab ${tabId}: ${String(err)}`);
+  }
   const saved = (await chrome.storage.local.get("lto-frozen")) as { "lto-frozen"?: number[] };
   const frozen = new Set(saved["lto-frozen"] ?? []);
   frozen.add(tabId);
@@ -198,7 +209,7 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   const state = JSON.parse(decodeUtf8(raw)) as SerializedTabState;
 
   // 2. A discarded tab has no renderer — reload it so the content script runs.
-  const tab = await chrome.tabs.get(tabId);
+  const tab = await findTab(tabId);
   if (tab.discarded) {
     await chrome.tabs.reload(tabId);
     await waitForTabComplete(tabId);
@@ -259,7 +270,7 @@ const restoring = new Set<number>();
 
 async function autoRestoreOnActivation(tabId: number): Promise<void> {
   if (restoring.has(tabId)) return;
-  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  const tab = await findTab(tabId).catch(() => null);
   if (!tab?.discarded) return;
   if (!(await isFrozen(tabId))) return; // only tabs we froze ourselves
 
