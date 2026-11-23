@@ -116,8 +116,10 @@ export async function hydrateDOM(
 export function restoreFormInputs(state: SerializedTabState, doc: Document = document): void {
   const inputs = doc.querySelectorAll("input, textarea, select");
   inputs.forEach((el, index) => {
-    const key = formKeyFor(el as Element, index);
-    if (!(key in state.formInputs)) return;
+    // Try id/name first (stable across reloads), then the capture-order index.
+    const candidates = formKeysFor(el as Element, index);
+    const key = candidates.find((k) => k in state.formInputs);
+    if (!key) return;
     const value = state.formInputs[key];
     const tag = el.tagName.toUpperCase();
     if (tag === "INPUT" && typeof value !== "undefined") {
@@ -143,12 +145,15 @@ export function restoreFormInputs(state: SerializedTabState, doc: Document = doc
   }
 }
 
-function formKeyFor(el: Element, index: number): string {
+function formKeysFor(el: Element, index: number): string[] {
+  const tag = el.tagName.toLowerCase();
+  const keys: string[] = [];
   const id = el.getAttribute("id");
-  if (id) return `#${id}`;
   const name = el.getAttribute("name");
-  if (name) return `${el.tagName.toLowerCase()}[name=${name}]`;
-  return `${el.tagName.toLowerCase()}#${index}`;
+  if (id) keys.push(`#${id}`);
+  if (name) keys.push(`${tag}[name=${name}]`);
+  keys.push(`${tag}#${index}`);
+  return keys;
 }
 
 // ---------------------------------------------------------------------------

@@ -86,6 +86,9 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
   in 100-node idle batches. `<html>` root maps to live documentElement.
 - Message constants live in `src/shared/types.ts` (background must not import
   `content.ts`, which has top-level listener side effects).
+- Reopening a discarded tab (`chrome.tabs.onActivated`) auto-restores its
+  snapshot; after a successful restore the snapshot is deleted so stale state
+  is never resurrected. Form fields match by id/name first, then capture index.
 - Icons are generated placeholder PNGs (`src/ui/icons/`), replace before defense.
 - `PROMPT.md` citation cleanup was committed together with the skeleton.
 

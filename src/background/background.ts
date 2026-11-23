@@ -210,6 +210,14 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
     | { ok: boolean; stats?: HydrationStats; error?: string }
     | undefined;
   if (!res?.ok) throw new Error(res?.error ?? "hydration failed in content script");
+
+  // Snapshot consumed — don't resurrect stale state on a later discard.
+  await deleteTabSnapshot(tabId);
+  const saved = (await chrome.storage.local.get("lto-frozen")) as { "lto-frozen"?: number[] };
+  const frozen = new Set(saved["lto-frozen"] ?? []);
+  frozen.delete(tabId);
+  await chrome.storage.local.set({ "lto-frozen": [...frozen] });
+
   return { state, hydration: res.stats ?? null, decompressMs, totalMs: performance.now() - started };
 }
 
@@ -245,7 +253,31 @@ async function sweepInactiveTabs(): Promise<void> {
   }
 }
 
+// --- Automatic restore when the user reopens a frozen tab ---------------------
+
+const restoring = new Set<number>();
+
+async function autoRestoreOnActivation(tabId: number): Promise<void> {
+  if (restoring.has(tabId)) return;
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab?.discarded) return;
+  if (!(await isFrozen(tabId))) return; // only tabs we froze ourselves
+
+  restoring.add(tabId);
+  try {
+    await restoreTab(tabId);
+  } catch (err) {
+    console.warn(`[lto] auto-restore failed for tab ${tabId}:`, err);
+  } finally {
+    restoring.delete(tabId);
+  }
+}
+
 // --- Wiring -------------------------------------------------------------------
+
+chrome.tabs.onActivated.addListener((info) => {
+  void autoRestoreOnActivation(info.tabId);
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   void chrome.alarms.create(CHECK_ALARM_NAME, { periodInMinutes: CHECK_PERIOD_MIN });

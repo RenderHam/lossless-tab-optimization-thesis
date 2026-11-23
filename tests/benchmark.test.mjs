@@ -46,6 +46,19 @@ describe("benchmark wiring", () => {
     assert.match(benchSrc, /freeze.stateJson === stableStringify\(restore.state\)/);
     assert.match(benchSrc, /LONG_TASK_BUDGET_MS/);
   });
+  it("reopening a discarded frozen tab triggers automatic restore", () => {
+    assert.match(bgSrc, /chrome\.tabs\.onActivated\.addListener/);
+    assert.match(bgSrc, /autoRestoreOnActivation/);
+    assert.match(bgSrc, /tab\.discarded/);
+  });
+  it("form restoration tries stable id/name keys before index", () => {
+    const rest = fs.readFileSync(new URL("../src/restoration/restoration.ts", import.meta.url), "utf8");
+    assert.match(rest, /formKeysFor/);
+    assert.match(rest, /candidates\.find/);
+  });
+  it("snapshot is deleted after a successful restore", () => {
+    assert.match(bgSrc, /await deleteTabSnapshot\(tabId\)/);
+  });
   it("background handles LTO_BENCH_RUN and persists results", () => {
     assert.match(bgSrc, /LTO_BENCH_RUN/);
     assert.match(bgSrc, /BENCH_RESULT_KEY/);
