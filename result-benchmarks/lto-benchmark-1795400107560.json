@@ -1,7 +1,7 @@
 {
-  "memoryApiAvailable": false,
+  "memoryApiAvailable": true,
   "summary": {
-    "failures": 3,
+    "failures": 2,
     "fidelityFailed": 0,
     "fidelityPassed": 0,
     "maxBatchMs": 0,
@@ -11,16 +11,16 @@
     "totalBeforeBytes": 0,
     "totalSavedBytes": 0,
     "totalSavedPercent": null,
-    "trialCount": 3
+    "trialCount": 2
   },
-  "timestamp": 1795347600662,
+  "timestamp": 1795400107560,
   "trials": [
     {
       "afterRestoreMemory": null,
       "beforeMemory": null,
       "compressedBytes": 0,
       "compressionPercent": 0,
-      "error": "SyntaxError: Unexpected end of JSON input",
+      "error": "Error: No tab with id: 896572809.",
       "fidelity": false,
       "frozenMemory": null,
       "hydration": null,
@@ -28,7 +28,7 @@
       "rawBytes": 0,
       "savedBytes": null,
       "savedPercent": null,
-      "tabId": 1603778670,
+      "tabId": 896572809,
       "timings": {
         "captureMs": 0,
         "compressMs": 0,
@@ -37,15 +37,20 @@
         "restoreTotalMs": 0,
         "storeMs": 0
       },
-      "title": "asd - Google Search",
-      "url": "https://www.google.com/search?q=asd&oq=asd&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIKCAEQABixAxiABDIKCAIQABixAxiABDIKCAMQABixAxiABDIKCAQQABixAxiABDINCAUQABiDARixAxiABDINCAYQLhiDARixAxiABDIHCAcQABiABDIHCAgQABiABDIHCAkQABiABNIBBzcxMGowajeoAgCwAgA&sourceid=chrome&source=chrome.ob&ie=UTF-8&sei=itMCa5S4LL-l2roP7Kan2Qo"
+      "title": "asdasda - Google Search",
+      "url": "https://www.google.com/search?q=asdasda&oq=asdasd&gs_lcrp=EgZjaHJvbWUqBggAEEUYOzIGCAAQRRg7MgYIARBFGDnSAQczMThqMGo3qAIAsAIA&sourceid=chrome&source=chrome.ob&ie=UTF-8"
     },
     {
       "afterRestoreMemory": null,
-      "beforeMemory": null,
+      "beforeMemory": {
+        "jsMemoryUsedBytes": 0,
+        "privateMemoryBytes": 161865728,
+        "processId": 36,
+        "tabId": 896572810
+      },
       "compressedBytes": 0,
       "compressionPercent": 0,
-      "error": "SyntaxError: Unexpected end of JSON input",
+      "error": "Error: No tab with id: 896572810.",
       "fidelity": false,
       "frozenMemory": null,
       "hydration": null,
@@ -53,7 +58,7 @@
       "rawBytes": 0,
       "savedBytes": null,
       "savedPercent": null,
-      "tabId": 1603778671,
+      "tabId": 896572810,
       "timings": {
         "captureMs": 0,
         "compressMs": 0,
@@ -64,31 +69,6 @@
       },
       "title": "YouTube",
       "url": "https://www.youtube.com/"
-    },
-    {
-      "afterRestoreMemory": null,
-      "beforeMemory": null,
-      "compressedBytes": 0,
-      "compressionPercent": 0,
-      "error": "SyntaxError: Unexpected end of JSON input",
-      "fidelity": false,
-      "frozenMemory": null,
-      "hydration": null,
-      "overBudget": false,
-      "rawBytes": 0,
-      "savedBytes": null,
-      "savedPercent": null,
-      "tabId": 1603778672,
-      "timings": {
-        "captureMs": 0,
-        "compressMs": 0,
-        "decompressMs": 0,
-        "freezeTotalMs": 0,
-        "restoreTotalMs": 0,
-        "storeMs": 0
-      },
-      "title": "Wikipedia",
-      "url": "https://www.wikipedia.org/"
     }
   ]
 }
