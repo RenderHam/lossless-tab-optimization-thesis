@@ -17,7 +17,7 @@ import { isMemoryApiAvailable, sampleTabRenderer, type MemorySample } from "./me
 export const BENCH_RESULT_KEY = "lto-bench-latest";
 
 export interface BenchmarkHooks {
-  freezeTab(tabId: number): Promise<FreezeOutcome>;
+  freezeTab(tabId: number, knownTab?: chrome.tabs.Tab): Promise<FreezeOutcome>;
   restoreTab(tabId: number): Promise<RestoreOutcome>;
 }
 
@@ -124,7 +124,7 @@ export function summarize(trials: BenchmarkTrial[]): BenchmarkSummary {
  * discard active/pinned/audible tabs, so those are excluded explicitly.
  */
 export function createBenchmark(hooks: BenchmarkHooks) {
-  return async function runBenchmark(requestedIds?: number[]): Promise<BenchmarkRun> {
+  return async function runBenchmark(_requestedIds?: number[]): Promise<BenchmarkRun> {
     const trials: BenchmarkTrial[] = [];
     const memoryApiAvailable = isMemoryApiAvailable();
 
@@ -138,12 +138,12 @@ export function createBenchmark(hooks: BenchmarkHooks) {
         !t.audible &&
         /^https?:\/\//.test(t.url ?? ""),
     );
-    const allowed = new Set(eligible.map((t) => t.id as number));
-    const tabIds = (requestedIds ?? [...allowed]).filter((id) => allowed.has(id));
+    // Ignore IDs sent by the popup: they may come from a different browser
+    // context (e.g. incognito). Benchmark only tabs this service worker sees.
+    const targets = eligible;
 
-    for (const tabId of tabIds) {
-      const tab = eligible.find((t) => t.id === tabId);
-      if (!tab) continue;
+    for (const tab of targets) {
+      const tabId = tab.id as number;
       const trial: BenchmarkTrial = {
         tabId,
         url: tab.url ?? "",
@@ -171,7 +171,9 @@ export function createBenchmark(hooks: BenchmarkHooks) {
 
       try {
         trial.beforeMemory = await sampleTabRenderer(tabId);
-        const freeze = await hooks.freezeTab(tabId);
+        // Pass the already-resolved tab object — no second lookup that could
+        // fail if the tab disappears between query and freeze.
+        const freeze = await hooks.freezeTab(tabId, tab);
         trial.frozenMemory = await sampleTabRenderer(tabId);
         const restore = await hooks.restoreTab(tabId);
         trial.afterRestoreMemory = await sampleTabRenderer(tabId);

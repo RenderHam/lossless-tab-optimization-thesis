@@ -131,14 +131,18 @@ export interface FreezeOutcome {
 async function findTab(tabId: number): Promise<chrome.tabs.Tab> {
   const tabs = await chrome.tabs.query({});
   const tab = tabs.find((t) => t.id === tabId);
-  if (!tab) throw new Error(`tab ${tabId} not found in tabs.query`);
+  if (!tab) {
+    throw new Error(
+      `tab ${tabId} not found in tabs.query (visible: ${tabs.map((t) => t.id).join(",") || "none"})`,
+    );
+  }
   return tab;
 }
 
-export async function freezeTab(tabId: number): Promise<FreezeOutcome> {
+export async function freezeTab(tabId: number, knownTab?: chrome.tabs.Tab): Promise<FreezeOutcome> {
   const started = performance.now();
   await ensureBridge();
-  const tab = await findTab(tabId);
+  const tab = knownTab ?? (await findTab(tabId));
   if (tab.discarded) {
     return {
       rawBytes: 0,
