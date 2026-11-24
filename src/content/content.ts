@@ -63,9 +63,14 @@ function readAttributes(el: Element): Record<string, string> {
  * Assigns dense ids in visitation order so parentId < child id always holds,
  * which lets restoration hydrate strictly in array order without lookahead.
  */
-export function captureDOMTree(root: Element): { nodes: FlatNodeDescriptor[]; truncated: number[] } {
+export function captureDOMTree(root: Element): {
+  nodes: FlatNodeDescriptor[];
+  truncated: number[];
+  ids: Map<Element, number>;
+} {
   const nodes: FlatNodeDescriptor[] = [];
   const truncated: number[] = [];
+  const ids = new Map<Element, number>();
   const queue: Array<{ node: Node; parentId: number }> = [{ node: root, parentId: -1 }];
   let nextId = 0;
 
@@ -96,6 +101,7 @@ export function captureDOMTree(root: Element): { nodes: FlatNodeDescriptor[]; tr
 
     if (node.nodeType === ELEMENT_NODE) {
       const el = node as Element;
+      ids.set(el, id);
       const tagName = el.tagName.toUpperCase();
       if (SKIP_TAGS.has(tagName)) {
         // Record a placeholder so child indexing stays consistent but
@@ -137,43 +143,49 @@ export function captureDOMTree(root: Element): { nodes: FlatNodeDescriptor[]; tr
     nextId--;
   }
 
-  return { nodes, truncated };
+  return { nodes, truncated, ids };
 }
 
-export function captureFormInputs(doc: Document): Record<string, FormValue> {
-  const out: Record<string, FormValue> = {};
+export function captureFormInputs(doc: Document, ids: Map<Element, number>): {
+  values: Record<string, FormValue>;
+  nodeIds: Record<string, number>;
+} {
+  const values: Record<string, FormValue> = {};
+  const nodeIds: Record<string, number> = {};
   const inputs = doc.querySelectorAll("input, textarea, select");
   inputs.forEach((el, index) => {
     const key = getFormKey(el, index);
+    nodeIds[key] = ids.get(el) ?? -1;
     const tag = el.tagName.toUpperCase();
     if (tag === "INPUT") {
       const input = el as HTMLInputElement;
       const type = (input.type || "text").toLowerCase();
       if (type === "checkbox" || type === "radio") {
-        out[key] = input.checked;
+        values[key] = input.checked;
       } else if (type === "password") {
-        out[key] = input.value; // preserved losslessly; stored only in local IndexedDB
+        values[key] = input.value; // preserved losslessly; stored only in local IndexedDB
       } else {
-        out[key] = input.value;
+        values[key] = input.value;
       }
     } else if (tag === "TEXTAREA") {
-      out[key] = (el as HTMLTextAreaElement).value;
+      values[key] = (el as HTMLTextAreaElement).value;
     } else if (tag === "SELECT") {
       const sel = el as HTMLSelectElement;
       if (sel.multiple) {
         const vals: string[] = [];
         for (const opt of Array.from(sel.selectedOptions)) vals.push(opt.value);
-        out[key] = vals;
+        values[key] = vals;
       } else {
-        out[key] = sel.value;
+        values[key] = sel.value;
       }
     }
   });
-  return out;
+  return { values, nodeIds };
 }
 
 export function captureTabState(tabId: number, doc: Document = document, win: Window = window): CaptureResult {
-  const { nodes, truncated } = captureDOMTree(doc.documentElement);
+  const { nodes, truncated, ids } = captureDOMTree(doc.documentElement);
+  const form = captureFormInputs(doc, ids);
   const state: SerializedTabState = {
     tabId,
     url: doc.URL,
@@ -181,7 +193,8 @@ export function captureTabState(tabId: number, doc: Document = document, win: Wi
     timestamp: Date.now(),
     scrollPosition: { x: win.scrollX, y: win.scrollY },
     domTree: nodes,
-    formInputs: captureFormInputs(doc),
+    formInputs: form.values,
+    formInputNodeIds: form.nodeIds,
     heapSnapshotRef: heapSnapshotRefFor(tabId),
   };
   return { state, truncatedTextNodes: truncated };

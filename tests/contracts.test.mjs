@@ -42,6 +42,14 @@ describe("deterministic contracts", () => {
     assert.match(restSrc, /HYDRATION_BATCH_SIZE/);
     assert.match(restSrc, /requestIdleCallback/);
   });
+  it("form restoration keys on BFS node id and re-applies after idle", () => {
+    assert.match(contentSrc, /ids\.set\(el, id\)/);
+    assert.match(contentSrc, /formInputNodeIds/);
+    assert.match(restSrc, /data-lto-id/);
+    assert.match(restSrc, /state\.formInputNodeIds/);
+    // Two passes: first after hydration, second after an idle frame.
+    assert.equal((restSrc.match(/restoreFormInputs\(state, doc\)/g) || []).length >= 2, true);
+  });
   it("restoration uses ES6 Proxy with get trap for lazy heap", () => {
     assert.match(restSrc, /new Proxy/);
     assert.match(restSrc, /get\s*\(target/);

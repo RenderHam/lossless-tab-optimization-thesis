@@ -87,7 +87,10 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
   `content.ts`, which has top-level listener side effects).
 - Reopening a discarded tab (`chrome.tabs.onActivated`) auto-restores its
   snapshot; after a successful restore the snapshot is deleted so stale state
-  is never resurrected. Form fields match by id/name first, then capture index.
+  is never resurrected.
+- Form restoration matches by BFS node id (`data-lto-id`) first, then `#id` /
+  `[name=...]` / capture index. Values are re-applied a second time on the next
+  idle frame so page scripts cannot wipe the user's last input.
 - Tab lookups use `chrome.tabs.query({})` via `findTab`, with labelled errors.
 - Icons are generated placeholder PNGs (`src/ui/icons/`), replace before defense.
 - `PROMPT.md` citation cleanup was committed together with the skeleton.

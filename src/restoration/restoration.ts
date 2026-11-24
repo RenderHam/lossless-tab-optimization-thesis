@@ -15,7 +15,7 @@
  * single id->Element map and no forward references.
  */
 
-import type { FlatNodeDescriptor, SerializedTabState } from "../shared/types";
+import type { FlatNodeDescriptor, FormValue, SerializedTabState } from "../shared/types";
 import { HYDRATION_BATCH_SIZE } from "../shared/types";
 
 export interface HydrationStats {
@@ -23,6 +23,8 @@ export interface HydrationStats {
   batches: number;
   elapsedMs: number;
   maxBatchMs: number;
+  formApplied: number;
+  formMissing: string[];
 }
 
 function nextIdle(timeoutMs = 50): Promise<void> {
@@ -54,6 +56,8 @@ function createNode(desc: FlatNodeDescriptor, doc: Document): Node {
   if (desc.textContent !== undefined && el.childNodes.length === 0) {
     el.textContent = desc.textContent;
   }
+  // Stable identity for form restoration even if index-based keys shift.
+  el.setAttribute("data-lto-id", String(desc.id));
   return el;
 }
 
@@ -108,41 +112,93 @@ export async function hydrateDOM(
     await nextIdle();
   }
 
+  const form = restoreFormInputs(state, doc);
+  // Page scripts can re-initialize fields after hydration; re-apply once more
+  // on the next idle frame so the user's typed values survive.
+  await nextIdle();
   restoreFormInputs(state, doc);
-  return { totalNodes: nodes.length, batches, elapsedMs: performance.now() - t0, maxBatchMs };
+  return {
+    totalNodes: nodes.length,
+    batches,
+    elapsedMs: performance.now() - t0,
+    maxBatchMs,
+    formApplied: form.applied,
+    formMissing: form.missing,
+  };
 }
 
-/** Re-apply captured form values in document order (same key scheme as capture). */
-export function restoreFormInputs(state: SerializedTabState, doc: Document = document): void {
-  const inputs = doc.querySelectorAll("input, textarea, select");
-  inputs.forEach((el, index) => {
-    // Try id/name first (stable across reloads), then the capture-order index.
-    const candidates = formKeysFor(el as Element, index);
-    const key = candidates.find((k) => k in state.formInputs);
-    if (!key) return;
-    const value = state.formInputs[key];
-    const tag = el.tagName.toUpperCase();
-    if (tag === "INPUT" && typeof value !== "undefined") {
-      const input = el as HTMLInputElement;
-      const type = (input.type || "text").toLowerCase();
-      if (type === "checkbox" || type === "radio") input.checked = value === true;
-      else if (typeof value === "string") input.value = value;
-    } else if (tag === "TEXTAREA" && typeof value === "string") {
-      (el as HTMLTextAreaElement).value = value;
-    } else if (tag === "SELECT") {
-      const sel = el as HTMLSelectElement;
-      if (sel.multiple && Array.isArray(value)) {
-        for (const opt of Array.from(sel.options)) opt.selected = (value as string[]).includes(opt.value);
-      } else if (typeof value === "string") {
-        sel.value = value;
+export interface FormRestoreStats {
+  applied: number;
+  missing: string[];
+}
+
+/** Re-apply captured form values, preferring stable BFS node identity. */
+export function restoreFormInputs(state: SerializedTabState, doc: Document = document): FormRestoreStats {
+  const stats: FormRestoreStats = { applied: 0, missing: [] };
+  const handled = new Set<string>();
+
+  // 1. BFS node id is the authoritative match: survives index shifts and
+  //    dynamic elements injected by the page after reload.
+  if (state.formInputNodeIds) {
+    for (const [key, nodeId] of Object.entries(state.formInputNodeIds)) {
+      if (!(key in state.formInputs) || nodeId < 0) continue;
+      const el = doc.querySelector(`[data-lto-id="${nodeId}"]`);
+      if (el && applyFormValue(el, state.formInputs[key])) {
+        stats.applied++;
+        handled.add(key);
       }
     }
+  }
+
+  // 2. Fallback for older snapshots or pages that changed structure.
+  const inputs = doc.querySelectorAll("input, textarea, select");
+  inputs.forEach((el, index) => {
+    const candidates = formKeysFor(el, index);
+    const key = candidates.find((k) => !handled.has(k) && k in state.formInputs);
+    if (!key) return;
+    if (applyFormValue(el, state.formInputs[key])) {
+      stats.applied++;
+      handled.add(key);
+    }
   });
+
+  for (const key of Object.keys(state.formInputs)) {
+    if (!handled.has(key)) stats.missing.push(key);
+  }
+
   try {
     window.scrollTo(state.scrollPosition.x, state.scrollPosition.y);
   } catch {
     // non-visual context — ignore
   }
+  return stats;
+}
+
+function applyFormValue(el: Element, value: FormValue | undefined): boolean {
+  if (value === undefined) return false;
+  const tag = el.tagName.toUpperCase();
+  if (tag === "INPUT") {
+    const input = el as HTMLInputElement;
+    const type = (input.type || "text").toLowerCase();
+    if (type === "checkbox" || type === "radio") input.checked = value === true;
+    else if (typeof value === "string") {
+      input.value = value;
+      input.setAttribute("value", value); // some frameworks read the attribute
+    } else return false;
+  } else if (tag === "TEXTAREA") {
+    if (typeof value !== "string") return false;
+    const area = el as HTMLTextAreaElement;
+    area.value = value;
+    area.textContent = value;
+  } else if (tag === "SELECT") {
+    const sel = el as HTMLSelectElement;
+    if (sel.multiple && Array.isArray(value)) {
+      for (const opt of Array.from(sel.options)) opt.selected = (value as string[]).includes(opt.value);
+    } else if (typeof value === "string") {
+      sel.value = value;
+    } else return false;
+  } else return false;
+  return true;
 }
 
 function formKeysFor(el: Element, index: number): string[] {

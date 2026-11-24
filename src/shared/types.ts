@@ -32,6 +32,8 @@ export interface SerializedTabState {
   scrollPosition: ScrollPosition;
   domTree: FlatNodeDescriptor[];
   formInputs: Record<string, FormValue>;
+  /** Maps each form key to its BFS node id, for stable restoration. */
+  formInputNodeIds?: Record<string, number>;
   /** IndexedDB key prefix under which compressed chunks are stored. */
   heapSnapshotRef: string;
 }
