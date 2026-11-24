@@ -4,12 +4,17 @@
 browser process tree (renderers, GPU process, extension service worker,
 offscreen host) while the same set of tabs is open:
 
-- **memory** — RSS and PSS from `/proc/<pid>/smaps_rollup` (PSS is the fair
-  metric for multi-process browsers)
+- **memory** — RSS and PSS via `smem` when installed (otherwise
+  `/proc/<pid>/smaps_rollup`). smem's process list is filtered to the browser's
+  own PIDs, so **other applications are never counted**. PSS is the fair
+  metric for multi-process browsers.
 - **CPU** — `utime + stime` deltas from `/proc/<pid>/stat`
 - **GPU** — NVIDIA `nvidia-smi` utilization and memory, when available
+  (system-wide, so treat it as context rather than browser-only cost)
 
-Python 3.10+ standard library only; no pip packages.
+The `compare` command writes a short **"In plain words"** summary followed by
+the detailed numbers table. Python 3.10+ standard library only; no pip
+packages. `smem` is optional but used automatically when present.
 
 ## 1. Build the extension first
 
@@ -66,6 +71,7 @@ deltas mean it cost extra work.
 | `--interval` | 1 s | seconds between samples |
 | `--samples` | 60 | number of samples (60 s at default interval) |
 | `--chrome` | auto | path to browser binary (auto-detects `google-chrome`, `google-chrome-stable`, `google-chrome-unstable`, `chromium`, `chromium-browser`, `microsoft-edge`) |
+| `--memory-source` | auto | `smem` if installed, otherwise `proc`; force with `--memory-source smem` or `proc` |
 | `--profile-dir` | `tools/memory-bench/profiles/run` | Chrome `--user-data-dir` |
 | `--fresh` | off | delete the profile before launch |
 

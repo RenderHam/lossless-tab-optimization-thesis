@@ -6,8 +6,9 @@ Runs two identical browsing sessions — one with a plain Chrome profile, one
 with the unpacked extension loaded — and samples resource usage of the whole
 browser process tree:
 
-  * memory: RSS and PSS from /proc/<pid>/smaps_rollup (PSS avoids
-    double-counting shared libraries across Chrome's many processes)
+  * memory: RSS and PSS via `smem` (when installed) or /proc/<pid>/smaps_rollup.
+    PSS avoids double-counting shared libraries across Chrome's processes.
+    Only the Chrome process tree is counted — other applications are excluded.
   * CPU: utime+stime deltas from /proc/<pid>/stat, as % of one core
   * GPU: nvidia-smi utilization and memory (when available; null otherwise)
 
@@ -105,6 +106,53 @@ def memory_for(pids):
     return rss, pss
 
 
+def smem_memory_for(pids):
+    """Ask smem for RSS/PSS, then keep ONLY our Chrome-tree PIDs.
+
+    `smem -t` alone reports every process on the machine; filtering by PID here
+    is what keeps other applications out of the result.
+    """
+    if not shutil.which("smem") or not pids:
+        return None
+    try:
+        out = subprocess.run(
+            ["smem", "-c", "pid rss pss", "-n"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    table = {}
+    for line in out[1:]:
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        try:
+            # smem -n reports kB; convert to bytes.
+            table[int(parts[0])] = (int(parts[1]) * 1024, int(parts[2]) * 1024)
+        except ValueError:
+            continue
+    rss = pss = 0
+    matched = 0
+    for pid in pids:
+        if pid in table:
+            r, p = table[pid]
+            rss += r
+            pss += p
+            matched += 1
+    return (rss, pss) if matched else None
+
+
+def detect_memory_source(requested: str) -> str:
+    if requested == "auto":
+        return "smem" if shutil.which("smem") else "proc"
+    if requested == "smem" and not shutil.which("smem"):
+        raise SystemExit("smem requested but not installed")
+    return requested
+
+
 def gpu_sample():
     """NVIDIA GPU utilization (%) and memory (MiB); None if unavailable."""
     if not shutil.which("nvidia-smi"):
@@ -190,6 +238,7 @@ def terminate_chrome(proc: subprocess.Popen):
 
 def run_case(args) -> dict:
     chrome = detect_chrome(args.chrome)
+    memory_source = detect_memory_source(args.memory_source)
     urls = load_urls(args)
     profile = Path(args.profile_dir).resolve()
     if args.fresh and profile.exists():
@@ -233,7 +282,8 @@ def run_case(args) -> dict:
         for i in range(args.samples):
             now = time.time()
             pids, all_stats = process_tree(proc.pid)
-            rss, pss = memory_for(pids)
+            measured = smem_memory_for(pids) if memory_source == "smem" else memory_for(pids)
+            rss, pss = measured or (0, 0)
             ticks = sum(all_stats[p][1] for p in pids if p in all_stats)
             gpu = gpu_sample()
             cpu = None
@@ -264,6 +314,7 @@ def run_case(args) -> dict:
         "extension": str(extension_dir) if extension_dir else None,
         "urls": urls,
         "config": {
+            "memory_source": memory_source,
             "warmup_seconds": args.warmup,
             "sample_interval_seconds": args.interval,
             "sample_count": args.samples,
@@ -300,6 +351,48 @@ def fmt(value, divisor):
     return "n/a" if value is None else f"{value / divisor:.2f}"
 
 
+def plain_summary(baseline: dict, extension: dict) -> list[str]:
+    source = baseline.get("config", {}).get("memory_source", "proc")
+    source_note = (
+        "smem, filtered to Chrome PIDs"
+        if source == "smem"
+        else "/proc smaps_rollup for the Chrome tree"
+    )
+    lines = [
+        "## In plain words",
+        "",
+        "- Scope: only the Chrome process tree was counted. Other applications were excluded.",
+        f"- Memory sampler: {source_note}.",
+        "",
+    ]
+    for key, label, divisor in (
+        ("pss_bytes", "Memory (PSS, MiB)", 1024**2),
+        ("cpu_percent", "CPU (% of one core)", 1),
+        ("gpu_util_percent", "GPU utilization (%)", 1),
+    ):
+        b = baseline["stats"][key]["mean"]
+        e = extension["stats"][key]["mean"]
+        if b is None or e is None:
+            lines.append(f"- {label}: not available in one or both runs.")
+            continue
+        diff = e - b
+        if abs(diff) / divisor < 0.05:
+            change = "essentially unchanged"
+        else:
+            direction = "less" if diff < 0 else "more"
+            pct = "" if not b else f" ({abs(diff / b * 100):.1f}% {'lower' if diff < 0 else 'higher'})"
+            change = f"used {abs(diff) / divisor:.1f} {direction}{pct}"
+        lines.append(
+            f"- {label}: baseline {b / divisor:.1f}, extension {e / divisor:.1f} — {change}."
+        )
+    lines += [
+        "",
+        "GPU readings come from system-wide `nvidia-smi`, so treat them as context, not browser-only cost.",
+        "",
+    ]
+    return lines
+
+
 def compare(baseline: dict, extension: dict, out_path: Path | None) -> str:
     lines = [
         "# Resource usage comparison",
@@ -307,6 +400,9 @@ def compare(baseline: dict, extension: dict, out_path: Path | None) -> str:
         f"- Baseline: `{baseline['name']}` ({baseline['timestamp']})",
         f"- With extension: `{extension['name']}` ({extension['timestamp']})",
         f"- URLs: {len(baseline['urls'])} tabs",
+        "",
+    ] + plain_summary(baseline, extension) + [
+        "## Numbers",
         "",
         "| Metric | Baseline | With extension | Delta | Delta % |",
         "|---|---:|---:|---:|---:|",
@@ -353,6 +449,12 @@ def main():
     run.add_argument("--warmup", type=int, default=10, help="seconds to wait before sampling")
     run.add_argument("--interval", type=float, default=1.0, help="seconds between samples")
     run.add_argument("--samples", type=int, default=60, help="number of samples")
+    run.add_argument(
+        "--memory-source",
+        choices=("auto", "smem", "proc"),
+        default="auto",
+        help="memory sampler: smem (if installed) or /proc; default auto",
+    )
     run.add_argument("--out", required=True, help="output JSON path")
 
     cmp = sub.add_parser("compare", help="compare two run JSON files")
