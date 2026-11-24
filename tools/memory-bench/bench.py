@@ -35,6 +35,7 @@ CLK_TCK = os.sysconf("SC_CLK_TCK")
 CHROME_CANDIDATES = (
     "google-chrome",
     "google-chrome-stable",
+    "google-chrome-unstable",
     "chromium",
     "chromium-browser",
     "microsoft-edge",

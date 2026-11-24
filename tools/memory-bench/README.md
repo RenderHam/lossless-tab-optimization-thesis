@@ -65,7 +65,7 @@ deltas mean it cost extra work.
 | `--warmup` | 10 s | wait for pages to settle before sampling |
 | `--interval` | 1 s | seconds between samples |
 | `--samples` | 60 | number of samples (60 s at default interval) |
-| `--chrome` | auto | path to browser binary |
+| `--chrome` | auto | path to browser binary (auto-detects `google-chrome`, `google-chrome-stable`, `google-chrome-unstable`, `chromium`, `chromium-browser`, `microsoft-edge`) |
 | `--profile-dir` | `tools/memory-bench/profiles/run` | Chrome `--user-data-dir` |
 | `--fresh` | off | delete the profile before launch |
 
