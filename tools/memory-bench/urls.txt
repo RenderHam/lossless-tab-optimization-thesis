@@ -1,0 +1,6 @@
+# One URL per line. Use the same file for baseline and extension runs.
+# Replace with your own fixed thesis fixtures before recording results.
+https://example.com/
+https://www.wikipedia.org/
+https://developer.mozilla.org/en-US/
+https://github.com/

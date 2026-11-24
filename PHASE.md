@@ -39,6 +39,7 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 | `src/ui/popup.*` | Dashboard: manual freeze/restore per tab |
 | `tests/contracts.test.mjs` | Determinism/batching/protocol contracts |
 | `tests/messaging.test.mjs` | Base64 bridge round-trip through offscreen.js |
+| `tools/memory-bench/bench.py` | External CPU/GPU/memory comparison tool |
 
 ## Verified State (after benchmark removal)
 
@@ -95,8 +96,7 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
 
 1. Load `dist/` unpacked (reload fully after a `manifest.json` change).
 2. Smoke test Freeze → Restore once, including form data and scroll position.
-3. Measure memory externally:
-   `smem -t -k -P chrome` for PSS/RSS, and `systemd-run --user --scope` +
-   `systemd-cgtop --user` for whole-browser totals.
+3. Measure with `tools/memory-bench/bench.py` (baseline vs. `--extension dist`)
+   and compare with its `compare` command.
 4. Use fixed URL fixtures, fresh profiles, repeated trials, and put the
    resulting numbers in the thesis (Weeks 13–14).

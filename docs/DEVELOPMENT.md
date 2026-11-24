@@ -219,26 +219,35 @@ load `dist/` and try Freeze/Restore manually after changes.
 
 ---
 
-## 10. Memory measurement (external tools)
+## 10. Memory / CPU / GPU measurement (external tool)
 
-The extension does not collect memory metrics. Use Linux tools instead:
-
-```sh
-sudo apt install smem
-smem -t -k -P chrome            # total PSS/RSS for all Chrome processes
-smem -c "pid rss pss command" -P chrome
-```
-
-For whole-browser totals, run Chrome in its own cgroup and read the counter:
+The extension does not collect metrics. Use `tools/memory-bench/bench.py`
+(Python 3.10+ standard library) — see
+[`tools/memory-bench/README.md`](../tools/memory-bench/README.md) for details.
 
 ```sh
-systemd-run --user --scope -p MemoryAccounting=yes \
-  google-chrome --user-data-dir=/tmp/chrome-bench
-systemd-cgtop --user
+# 1. baseline session
+python3 tools/memory-bench/bench.py run --name baseline --fresh \
+  --url-file tools/memory-bench/urls.txt \
+  --out tools/memory-bench/results/baseline.json
+
+# 2. session with the extension loaded from dist/
+python3 tools/memory-bench/bench.py run --name extension --extension dist --fresh \
+  --url-file tools/memory-bench/urls.txt \
+  --out tools/memory-bench/results/extension.json
+
+# 3. comparison report
+python3 tools/memory-bench/bench.py compare \
+  tools/memory-bench/results/baseline.json tools/memory-bench/results/extension.json \
+  --out tools/memory-bench/results/comparison.md
 ```
 
-Use a fresh profile per trial, disable Chrome Memory Saver, open the same URL
-set, let pages settle, and report mean PSS across repeated runs.
+The tool samples RSS/PSS from `/proc`, CPU from process tick deltas, and GPU
+via `nvidia-smi` when available. Use the same URL file, fresh profiles, equal
+settle time, and repeat 3–5 runs for the thesis numbers.
+
+For whole-browser cgroup totals, `systemd-run --user --scope` plus
+`systemd-cgtop --user` is also available.
 
 ---
 

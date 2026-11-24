@@ -65,11 +65,25 @@ tests/           contract and messaging tests
 PHASE.md         continuity log (verified state, known issues, next steps)
 ```
 
-## Memory Measurement
+## Memory / CPU / GPU Measurement
 
-Memory footprint is measured externally with Linux tools such as `smem`
-(PSS/RSS per Chrome process) and cgroups v2 via `systemd-run --user --scope`
-(whole-browser total). The extension itself does not collect memory metrics.
+Use the standalone Linux tool in [`tools/memory-bench/`](tools/memory-bench/README.md).
+It launches two identical browsing sessions (plain Chrome vs. Chrome with the
+unpacked extension), samples RSS/PSS memory, CPU, and GPU usage of the entire
+browser process tree, and writes a comparison report.
+
+```sh
+python3 tools/memory-bench/bench.py run --name baseline --fresh \
+  --url-file tools/memory-bench/urls.txt --out tools/memory-bench/results/baseline.json
+python3 tools/memory-bench/bench.py run --name extension --extension dist --fresh \
+  --url-file tools/memory-bench/urls.txt --out tools/memory-bench/results/extension.json
+python3 tools/memory-bench/bench.py compare \
+  tools/memory-bench/results/baseline.json tools/memory-bench/results/extension.json \
+  --out tools/memory-bench/results/comparison.md
+```
+
+For whole-browser cgroup totals you can still use `systemd-run --user --scope`
+with `systemd-cgtop`. The extension itself does not collect metrics.
 
 ## 14-Week Development Roadmap
 
