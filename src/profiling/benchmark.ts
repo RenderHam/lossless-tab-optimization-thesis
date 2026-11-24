@@ -128,22 +128,30 @@ export function createBenchmark(hooks: BenchmarkHooks) {
     const trials: BenchmarkTrial[] = [];
     const memoryApiAvailable = isMemoryApiAvailable();
 
-    const allTabs = await chrome.tabs.query({});
-    const eligible = allTabs.filter(
-      (t) =>
-        t.id !== undefined &&
-        !t.discarded &&
-        !t.active &&
-        !t.pinned &&
-        !t.audible &&
-        /^https?:\/\//.test(t.url ?? ""),
-    );
-    // Ignore IDs sent by the popup: they may come from a different browser
-    // context (e.g. incognito). Benchmark only tabs this service worker sees.
-    const targets = eligible;
+    const isEligible = (t: chrome.tabs.Tab): boolean =>
+      t.id !== undefined &&
+      !t.discarded &&
+      !t.active &&
+      !t.pinned &&
+      !t.audible &&
+      /^https?:\/\//.test(t.url ?? "");
 
-    for (const tab of targets) {
-      const tabId = tab.id as number;
+    // Ignore IDs sent by the popup: they may come from a different browser
+    // context. Re-query before EVERY trial because tab IDs can churn while
+    // the benchmark is freezing/reloading tabs.
+    const initialCount = (await chrome.tabs.query({})).filter(isEligible).length;
+    const used = new Set<number>();
+
+    for (let i = 0; i < initialCount; i++) {
+      let tab: chrome.tabs.Tab | undefined;
+      for (let attempt = 0; attempt < 3 && !tab; attempt++) {
+        const current = await chrome.tabs.query({});
+        tab = current.find((t) => isEligible(t) && t.id !== undefined && !used.has(t.id));
+        if (!tab) await new Promise((r) => setTimeout(r, 100));
+      }
+      if (!tab || tab.id === undefined) break;
+      const tabId = tab.id;
+      used.add(tabId);
       const trial: BenchmarkTrial = {
         tabId,
         url: tab.url ?? "",

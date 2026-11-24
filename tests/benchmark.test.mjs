@@ -37,7 +37,8 @@ describe("benchmark wiring", () => {
   });
   it("benchmark uses only tabs visible to the background service worker", () => {
     assert.match(benchSrc, /Ignore IDs sent by the popup/);
-    assert.match(benchSrc, /const targets = eligible/);
+    assert.match(benchSrc, /const initialCount = /);
+    assert.match(benchSrc, /Re-query before EVERY trial/);
     assert.match(benchSrc, /hooks\.freezeTab\(tabId, tab\)/);
   });
   it("benchmark re-resolves tab IDs in background and skips undiscardable tabs", () => {

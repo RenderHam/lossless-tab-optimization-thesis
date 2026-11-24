@@ -285,9 +285,11 @@ async function sweepInactiveTabs(): Promise<void> {
 // --- Automatic restore when the user reopens a frozen tab ---------------------
 
 const restoring = new Set<number>();
+let benchmarkActive = false;
 
 async function autoRestoreOnActivation(tabId: number): Promise<void> {
-  if (restoring.has(tabId)) return;
+  // The benchmark drives freeze/restore itself; auto-restore would race it.
+  if (benchmarkActive || restoring.has(tabId)) return;
   const tab = await findTab(tabId).catch(() => null);
   if (!tab?.discarded) return;
   if (!(await isFrozen(tabId))) return; // only tabs we froze ourselves
@@ -349,12 +351,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (type === "LTO_BENCH_RUN") {
     const tabIds = (msg as { tabIds?: number[] }).tabIds;
+    benchmarkActive = true;
     runBenchmark(tabIds)
       .then(async (run) => {
         await chrome.storage.local.set({ [BENCH_RESULT_KEY]: run });
         sendResponse({ ok: true, run });
       })
-      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
+      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }))
+      .finally(() => {
+        benchmarkActive = false;
+      });
     return true;
   }
   if (type === "LTO_BENCH_LATEST") {
