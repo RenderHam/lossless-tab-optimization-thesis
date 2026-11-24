@@ -21,7 +21,7 @@ import {
   MSG_PING,
   MSG_RESTORE_PUSH,
 } from "../shared/types";
-import { hydrateDOM } from "../restoration/restoration";
+import { hydrateDOM, overlayRestore } from "../restoration/restoration";
 
 const TEXT_NODE = 3;
 const COMMENT_NODE = 8;
@@ -222,7 +222,14 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         sendResponse({ ok: false, error: "RESTORE_PUSH without state" });
         return true;
       }
-      hydrateDOM(state, document.documentElement)
+      // A discarded tab reloads with a complete DOM. Rebuilding it here caused
+      // duplicated UI on framework-heavy sites (e.g. YouTube), so only overlay
+      // the saved state unless the page is actually empty.
+      const hasLiveDom = document.readyState !== "loading" && (document.body?.children.length ?? 0) > 0;
+      const restoreTask = hasLiveDom
+        ? overlayRestore(state)
+        : hydrateDOM(state, document.documentElement);
+      restoreTask
         .then((stats) => sendResponse({ ok: true, stats }))
         .catch((err) => sendResponse({ ok: false, error: String(err) }));
       return true;

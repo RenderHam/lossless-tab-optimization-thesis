@@ -81,8 +81,10 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
   `public/zstd/`, driven by the classic worker `public/compression-worker.js`.
   MV3 CSP needs `'wasm-unsafe-eval'` (in `manifest.json`).
 - Restore is wired end to end: background reloads discarded tab → waits for
-  content script → `LTO_RESTORE_PUSH` → `hydrateDOM(state, document.documentElement)`
-  in 100-node idle batches. `<html>` root maps to live documentElement.
+  content script → `LTO_RESTORE_PUSH`. If the reloaded page already has a DOM,
+  restore uses **overlay mode** (form values + scroll only) because rebuilding
+  `documentElement` duplicates UI on framework-heavy sites (YouTube). Full
+  batched `hydrateDOM` is used only when the page is empty.
 - Message constants live in `src/shared/types.ts` (background must not import
   `content.ts`, which has top-level listener side effects).
 - Reopening a discarded tab (`chrome.tabs.onActivated`) auto-restores its

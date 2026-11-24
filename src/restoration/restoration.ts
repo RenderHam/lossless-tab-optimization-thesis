@@ -19,6 +19,8 @@ import type { FlatNodeDescriptor, FormValue, SerializedTabState } from "../share
 import { HYDRATION_BATCH_SIZE } from "../shared/types";
 
 export interface HydrationStats {
+  /** "full" rebuilt the DOM tree; "overlay" only restored state onto a live page. */
+  mode: "full" | "overlay";
   totalNodes: number;
   batches: number;
   elapsedMs: number;
@@ -118,10 +120,33 @@ export async function hydrateDOM(
   await nextIdle();
   restoreFormInputs(state, doc);
   return {
+    mode: "full",
     totalNodes: nodes.length,
     batches,
     elapsedMs: performance.now() - t0,
     maxBatchMs,
+    formApplied: form.applied,
+    formMissing: form.missing,
+  };
+}
+
+/**
+ * Overlay mode: the page already reloaded from the network, so its own DOM,
+ * event listeners, and framework state are intact. Rebuilding the DOM would
+ * duplicate UI and break those references. Restore only the captured live
+ * state — form values and scroll — onto the existing document.
+ */
+export async function overlayRestore(state: SerializedTabState, doc: Document = document): Promise<HydrationStats> {
+  const t0 = performance.now();
+  const form = restoreFormInputs(state, doc);
+  await nextIdle();
+  restoreFormInputs(state, doc);
+  return {
+    mode: "overlay",
+    totalNodes: 0,
+    batches: 0,
+    elapsedMs: performance.now() - t0,
+    maxBatchMs: 0,
     formApplied: form.applied,
     formMissing: form.missing,
   };

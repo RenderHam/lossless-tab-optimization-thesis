@@ -45,12 +45,13 @@ async function refresh(): Promise<void> {
       if (t.id === undefined) return;
       const r = await send<{
         ok: boolean;
-        hydration?: { totalNodes: number; batches: number } | null;
+        hydration?: { mode?: "full" | "overlay"; totalNodes: number; batches: number; formApplied?: number } | null;
         error?: string;
       }>("LTO_RESTORE_TAB", t.id);
       log(
         r.ok
-          ? `restored tab ${t.id}: ${r.hydration?.totalNodes ?? 0} nodes in ${r.hydration?.batches ?? 0} batches`
+          ? `restored tab ${t.id}: ${r.hydration?.mode ?? "full"} mode, ` +
+            `${r.hydration?.totalNodes ?? 0} nodes, ${r.hydration?.formApplied ?? 0} fields`
           : `restore failed: ${r.error}`,
       );
       await refresh();

@@ -14,7 +14,7 @@ Native memory-saving features (such as Chrome Memory Saver or Firefox Tab Unload
 
 1. **State Capture Module:** Programmatically traverses the DOM in a Breadth-First Search (BFS) pattern into a flat node descriptor array, captures unsubmitted form inputs (`<input>`, `<textarea>`, `<select>`), and records exact window scroll coordinates.
 2. **Lossless Compression Stage:** Offloads serialized raw bytes via zero-copy `TransferableObjects` to a background Web Worker running a deterministic WebAssembly (Wasm) compilation of `zstd`, storing compressed binary chunks in IndexedDB.
-3. **Lazy Restoration Module:** Recalls frozen tabs on demand via chunked stream deserialization and batched `requestIdleCallback` DOM hydration (max 100 elements per execution frame) to eliminate main-thread UI jank, paired with ES6 `Proxy` objects for deferred heap reinitialization.
+3. **Lazy Restoration Module:** Recalls frozen tabs on demand via chunked stream deserialization. On a reloaded page with an existing DOM it overlays saved form values and scroll (avoiding duplicated UI on framework-heavy sites); for an empty page it uses batched `requestIdleCallback` DOM hydration (max 100 elements per execution frame) to eliminate main-thread UI jank, paired with ES6 `Proxy` objects for deferred heap reinitialization.
 
 ---
 

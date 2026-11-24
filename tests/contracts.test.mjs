@@ -50,6 +50,12 @@ describe("deterministic contracts", () => {
     // Two passes: first after hydration, second after an idle frame.
     assert.equal((restSrc.match(/restoreFormInputs\(state, doc\)/g) || []).length >= 2, true);
   });
+  it("restore overlays state on live pages instead of rebuilding their DOM", () => {
+    assert.match(restSrc, /export async function overlayRestore/);
+    assert.match(restSrc, /mode: "overlay"/);
+    assert.match(contentSrc, /hasLiveDom/);
+    assert.match(contentSrc, /overlayRestore\(state\)/);
+  });
   it("restoration uses ES6 Proxy with get trap for lazy heap", () => {
     assert.match(restSrc, /new Proxy/);
     assert.match(restSrc, /get\s*\(target/);
