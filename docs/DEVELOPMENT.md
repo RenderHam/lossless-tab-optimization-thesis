@@ -242,12 +242,21 @@ python3 tools/memory-bench/bench.py compare \
   --out tools/memory-bench/results/comparison.md
 ```
 
-The tool samples RSS/PSS from `/proc`, CPU from process tick deltas, and GPU
-via `nvidia-smi` when available. Use the same URL file, fresh profiles, equal
-settle time, and repeat 3–5 runs for the thesis numbers.
-
+On Linux the tool samples RSS/PSS via `smem` when installed (otherwise
+`/proc`), CPU from process tick deltas, and GPU via `nvidia-smi` when available.
 For whole-browser cgroup totals, `systemd-run --user --scope` plus
 `systemd-cgtop --user` is also available.
+
+On Windows 11 the same commands work in PowerShell (use `python` instead of
+`python3`). The tool automatically uses a PowerShell/CIM backend: memory is
+Working Set (RSS) filtered to the Chrome tree (no PSS on Windows), CPU is
+`(Get-Process).CPU` deltas, and **GPU sampling is disabled** — use Task
+Manager → Performance → GPU for a visual reading. Chrome is auto-detected in
+its usual `Program Files` locations. Visual alternatives: Task Manager,
+Resource Monitor (`resmon.exe`), Process Explorer / System Informer, RAMMap.
+
+Use the same URL file, fresh profiles, equal settle time, and repeat 3–5 runs
+for the thesis numbers.
 
 ---
 

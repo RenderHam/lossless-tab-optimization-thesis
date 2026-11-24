@@ -6,13 +6,16 @@ Runs two identical browsing sessions — one with a plain Chrome profile, one
 with the unpacked extension loaded — and samples resource usage of the whole
 browser process tree:
 
-  * memory: RSS and PSS via `smem` (when installed) or /proc/<pid>/smaps_rollup.
-    PSS avoids double-counting shared libraries across Chrome's processes.
+  * memory: Linux — RSS and PSS via `smem` (when installed) or
+    /proc/<pid>/smaps_rollup. PSS avoids double-counting shared libraries.
+    Windows — Working Set (RSS) via PowerShell/CIM; PSS is not available.
     Only the Chrome process tree is counted — other applications are excluded.
-  * CPU: utime+stime deltas from /proc/<pid>/stat, as % of one core
-  * GPU: nvidia-smi utilization and memory (when available; null otherwise)
+  * CPU: process CPU-time deltas, as % of one core
+  * GPU: nvidia-smi utilization and memory on Linux only. GPU sampling is
+    deliberately disabled on Windows.
 
-Pure Python 3 standard library. No pip dependencies.
+Pure Python 3 standard library. No pip dependencies. Requires PowerShell on
+Windows.
 
 Usage:
   python3 tools/memory-bench/bench.py run --name baseline --out results/baseline.json
@@ -21,6 +24,7 @@ Usage:
 """
 
 import argparse
+import base64
 import json
 import os
 import shutil
@@ -32,7 +36,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-CLK_TCK = os.sysconf("SC_CLK_TCK")
+IS_WINDOWS = os.name == "nt"
+CLK_TCK = os.sysconf("SC_CLK_TCK") if not IS_WINDOWS else 1
 CHROME_CANDIDATES = (
     "google-chrome",
     "google-chrome-stable",
@@ -40,6 +45,12 @@ CHROME_CANDIDATES = (
     "chromium",
     "chromium-browser",
     "microsoft-edge",
+)
+WINDOWS_CHROME_PATHS = (
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
 )
 
 
@@ -146,15 +157,79 @@ def smem_memory_for(pids):
 
 
 def detect_memory_source(requested: str) -> str:
+    if IS_WINDOWS:
+        if requested in ("auto", "powershell"):
+            return "powershell"
+        raise SystemExit("Windows only supports --memory-source powershell/auto")
     if requested == "auto":
         return "smem" if shutil.which("smem") else "proc"
     if requested == "smem" and not shutil.which("smem"):
         raise SystemExit("smem requested but not installed")
+    if requested == "powershell":
+        raise SystemExit("--memory-source powershell is only available on Windows")
     return requested
 
 
+def run_powershell(script: str) -> str:
+    """Run a PowerShell script without quoting headaches (UTF-16 encoded)."""
+    encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=True,
+    )
+    return result.stdout
+
+
+def windows_snapshot(profile: Path) -> dict[int, dict]:
+    """Chrome process tree via CIM, filtered by the browser's profile path.
+
+    Returns {pid: {"rss_bytes": int, "cpu_seconds": float}}. Other applications
+    can never enter the result because roots must match our profile path.
+    """
+    target = str(profile).replace("'", "''")
+    script = f"""
+$all = Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CommandLine
+$roots = $all | Where-Object {{ $_.CommandLine -like '*{target}*' }}
+$queue = New-Object System.Collections.Generic.Queue[int]
+foreach ($r in $roots) {{ $queue.Enqueue([int]$r.ProcessId) }}
+$seen = @{{}}
+while ($queue.Count -gt 0) {{
+    $currentPid = $queue.Dequeue()
+    if ($seen.ContainsKey($currentPid)) {{ continue }}
+    $seen[$currentPid] = $true
+    foreach ($p in $all) {{
+        if ([int]$p.ParentProcessId -eq $currentPid) {{ $queue.Enqueue([int]$p.ProcessId) }}
+    }}
+}}
+$procs = Get-Process -Id $seen.Keys -ErrorAction SilentlyContinue
+foreach ($p in $procs) {{ "$($p.Id),$($p.WorkingSet64),$($p.CPU)" }}
+"""
+    try:
+        out = run_powershell(script)
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    snapshot = {}
+    for line in out.splitlines():
+        parts = line.strip().split(",")
+        if len(parts) < 3:
+            continue
+        try:
+            snapshot[int(parts[0])] = {
+                "rss_bytes": int(parts[1]),
+                "cpu_seconds": float(parts[2]),
+            }
+        except ValueError:
+            continue
+    return snapshot
+
+
 def gpu_sample():
-    """NVIDIA GPU utilization (%) and memory (MiB); None if unavailable."""
+    """NVIDIA GPU utilization (%) and memory (MiB); Linux only."""
+    if IS_WINDOWS:
+        return None
     if not shutil.which("nvidia-smi"):
         return None
     try:
@@ -189,6 +264,10 @@ def detect_chrome(explicit: str | None) -> str:
     for name in CHROME_CANDIDATES:
         if shutil.which(name):
             return shutil.which(name)
+    if IS_WINDOWS:
+        for path in WINDOWS_CHROME_PATHS:
+            if os.path.isfile(path):
+                return path
     raise SystemExit("No Chrome/Chromium binary found. Pass --chrome /path/to/browser.")
 
 
@@ -222,6 +301,14 @@ def summarize(values):
 
 
 def terminate_chrome(proc: subprocess.Popen):
+    if IS_WINDOWS:
+        subprocess.run(
+            ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+        )
+        return
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
     except (ProcessLookupError, PermissionError, OSError):
@@ -267,28 +354,33 @@ def run_case(args) -> dict:
     if extension_dir:
         print(f"[{args.name}] extension: {extension_dir}")
     print(f"[{args.name}] warming up for {args.warmup}s with {len(urls)} tabs...")
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+    popen_kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    if not IS_WINDOWS:
+        popen_kwargs["start_new_session"] = True
+    proc = subprocess.Popen(cmd, **popen_kwargs)
 
     samples = []
-    prev_ticks = prev_time = None
+    prev_cpu = prev_time = None
     try:
         time.sleep(args.warmup)
         print(f"[{args.name}] sampling {args.samples} times every {args.interval}s...")
         for i in range(args.samples):
             now = time.time()
-            pids, all_stats = process_tree(proc.pid)
-            measured = smem_memory_for(pids) if memory_source == "smem" else memory_for(pids)
-            rss, pss = measured or (0, 0)
-            ticks = sum(all_stats[p][1] for p in pids if p in all_stats)
+            if memory_source == "powershell":
+                snap = windows_snapshot(profile)
+                pids = set(snap)
+                rss = sum(v["rss_bytes"] for v in snap.values())
+                pss = None  # Windows has no PSS equivalent
+                cpu_seconds = sum(v["cpu_seconds"] for v in snap.values())
+            else:
+                pids, all_stats = process_tree(proc.pid)
+                measured = smem_memory_for(pids) if memory_source == "smem" else memory_for(pids)
+                rss, pss = measured or (0, 0)
+                cpu_seconds = sum(all_stats[p][1] for p in pids if p in all_stats) / CLK_TCK
             gpu = gpu_sample()
             cpu = None
-            if prev_ticks is not None and now > prev_time:
-                cpu = ((ticks - prev_ticks) / CLK_TCK) / (now - prev_time) * 100
+            if prev_cpu is not None and now > prev_time:
+                cpu = (cpu_seconds - prev_cpu) / (now - prev_time) * 100
             samples.append(
                 {
                     "index": i,
@@ -301,7 +393,7 @@ def run_case(args) -> dict:
                     "gpu_memory_mib": gpu["memory_mib"] if gpu else None,
                 }
             )
-            prev_ticks, prev_time = ticks, now
+            prev_cpu, prev_time = cpu_seconds, now
             if i < args.samples - 1:
                 time.sleep(args.interval)
     finally:
@@ -315,6 +407,7 @@ def run_case(args) -> dict:
         "urls": urls,
         "config": {
             "memory_source": memory_source,
+            "memory_metric": "Working Set (RSS)" if memory_source == "powershell" else "PSS",
             "warmup_seconds": args.warmup,
             "sample_interval_seconds": args.interval,
             "sample_count": args.samples,
@@ -353,20 +446,24 @@ def fmt(value, divisor):
 
 def plain_summary(baseline: dict, extension: dict) -> list[str]:
     source = baseline.get("config", {}).get("memory_source", "proc")
-    source_note = (
-        "smem, filtered to Chrome PIDs"
-        if source == "smem"
-        else "/proc smaps_rollup for the Chrome tree"
-    )
+    source_note = {
+        "smem": "smem, filtered to Chrome PIDs",
+        "proc": "/proc smaps_rollup for the Chrome tree",
+        "powershell": "PowerShell/CIM Working Set, filtered to Chrome PIDs",
+    }.get(source, source)
+    is_windows = source == "powershell"
     lines = [
         "## In plain words",
         "",
         "- Scope: only the Chrome process tree was counted. Other applications were excluded.",
         f"- Memory sampler: {source_note}.",
-        "",
     ]
+    if is_windows:
+        lines.append("- Windows has no PSS equivalent; memory is Working Set (RSS).")
+    lines.append("")
     for key, label, divisor in (
-        ("pss_bytes", "Memory (PSS, MiB)", 1024**2),
+        (("rss_bytes" if is_windows else "pss_bytes"),
+         ("Memory (Working Set, MiB)" if is_windows else "Memory (PSS, MiB)"), 1024**2),
         ("cpu_percent", "CPU (% of one core)", 1),
         ("gpu_util_percent", "GPU utilization (%)", 1),
     ):
@@ -385,11 +482,13 @@ def plain_summary(baseline: dict, extension: dict) -> list[str]:
         lines.append(
             f"- {label}: baseline {b / divisor:.1f}, extension {e / divisor:.1f} — {change}."
         )
-    lines += [
-        "",
-        "GPU readings come from system-wide `nvidia-smi`, so treat them as context, not browser-only cost.",
-        "",
-    ]
+    lines.append("")
+    lines.append(
+        "GPU sampling is disabled on Windows; use Task Manager's GPU tab if needed."
+        if is_windows
+        else "GPU readings come from system-wide `nvidia-smi`, so treat them as context, not browser-only cost."
+    )
+    lines.append("")
     return lines
 
 
@@ -451,9 +550,9 @@ def main():
     run.add_argument("--samples", type=int, default=60, help="number of samples")
     run.add_argument(
         "--memory-source",
-        choices=("auto", "smem", "proc"),
+        choices=("auto", "smem", "proc", "powershell"),
         default="auto",
-        help="memory sampler: smem (if installed) or /proc; default auto",
+        help="memory sampler: smem/proc on Linux, powershell on Windows; default auto",
     )
     run.add_argument("--out", required=True, help="output JSON path")
 
@@ -471,7 +570,10 @@ def main():
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(result, indent=2))
         print(f"[{args.name}] wrote {out}")
-        print(f"[{args.name}] mean PSS: {result['stats']['pss_bytes']['mean'] / 1024**2:.1f} MiB")
+        metric = result["config"]["memory_metric"]
+        bytes_key = "rss_bytes" if metric.startswith("Working Set") else "pss_bytes"
+        value = result["stats"][bytes_key]["mean"]
+        print(f"[{args.name}] mean {metric}: {(value or 0) / 1024**2:.1f} MiB")
     else:
         baseline = json.loads(Path(args.baseline).read_text())
         extension = json.loads(Path(args.extension).read_text())

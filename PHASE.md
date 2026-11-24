@@ -39,7 +39,7 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 | `src/ui/popup.*` | Dashboard: manual freeze/restore per tab |
 | `tests/contracts.test.mjs` | Determinism/batching/protocol contracts |
 | `tests/messaging.test.mjs` | Base64 bridge round-trip through offscreen.js |
-| `tools/memory-bench/bench.py` | External CPU/GPU/memory comparison tool |
+| `tools/memory-bench/bench.py` | External CPU/memory comparison tool (Linux smem/proc, Windows PowerShell; GPU Linux-only) |
 
 ## Verified State (after benchmark removal)
 

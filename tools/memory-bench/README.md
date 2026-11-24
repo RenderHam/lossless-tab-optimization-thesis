@@ -71,7 +71,7 @@ deltas mean it cost extra work.
 | `--interval` | 1 s | seconds between samples |
 | `--samples` | 60 | number of samples (60 s at default interval) |
 | `--chrome` | auto | path to browser binary (auto-detects `google-chrome`, `google-chrome-stable`, `google-chrome-unstable`, `chromium`, `chromium-browser`, `microsoft-edge`) |
-| `--memory-source` | auto | `smem` if installed, otherwise `proc`; force with `--memory-source smem` or `proc` |
+| `--memory-source` | auto | Linux: `smem` if installed, otherwise `proc`. Windows: `powershell` (automatic). |
 | `--profile-dir` | `tools/memory-bench/profiles/run` | Chrome `--user-data-dir` |
 | `--fresh` | off | delete the profile before launch |
 
@@ -84,3 +84,24 @@ deltas mean it cost extra work.
 - Repeat 3–5 times and report means; single runs are noisy.
 - Freeze inactive tabs in the extension run before or during sampling — the
   tool deliberately does not click the popup for you.
+
+## Windows 11
+
+The same commands work in PowerShell (use `python` or `py -3` instead of
+`python3`). On Windows:
+
+- `--memory-source` is automatically `powershell` (no `smem` needed).
+- Memory is **Working Set (RSS)** from PowerShell/CIM; Windows has no PSS
+  equivalent. The report says so explicitly.
+- Only Chrome processes started with the tool's `--profile-dir` are counted,
+  so other applications are excluded.
+- **GPU sampling is disabled** on Windows. Use Task Manager → Performance →
+  GPU if you need a visual reading.
+- Chrome is auto-detected at the usual `Program Files` locations; override
+  with `--chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"`.
+- Run PowerShell normally; elevated/admin rights may be needed to read memory
+  details of processes owned by other users.
+
+Visual alternatives on Windows: **Task Manager** (`Ctrl+Shift+Esc`),
+**Resource Monitor** (`resmon.exe`), **Process Explorer / System Informer**,
+and **RAMMap** (Sysinternals).
