@@ -22,8 +22,6 @@ import {
   type SerializedTabState,
 } from "../shared/types";
 import { deleteTabSnapshot, readAllChunks, readMeta, writeCompressedChunks } from "../storage/indexeddb";
-import { BENCH_RESULT_KEY, createBenchmark, type BenchmarkRun } from "../profiling/benchmark";
-import { sampleAllRenderers } from "../profiling/memory";
 
 // --- Explicit deterministic policy constants -------------------------------
 export const INACTIVITY_THRESHOLD_MIN = 15; // minutes before a tab is eligible
@@ -118,7 +116,7 @@ async function ping(tabId: number): Promise<boolean> {
 export interface FreezeOutcome {
   rawBytes: number;
   compressedBytes: number;
-  /** Internal: used by the benchmark for fidelity, stripped from popup replies. */
+  /** Internal: kept for potential fidelity checks, stripped from popup replies. */
   stateJson: string;
   timings: {
     captureMs: number;
@@ -255,14 +253,6 @@ export async function isFrozen(tabId: number): Promise<boolean> {
   return meta !== undefined;
 }
 
-/** Benchmark runner, created once with the real freeze/restore implementations. */
-const runBenchmark = createBenchmark({ freezeTab, restoreTab });
-
-export async function getLatestBenchmark(): Promise<BenchmarkRun | null> {
-  const stored = (await chrome.storage.local.get(BENCH_RESULT_KEY)) as Record<string, BenchmarkRun>;
-  return stored[BENCH_RESULT_KEY] ?? null;
-}
-
 // --- Inactivity sweep (explicit rule, no prediction) --------------------------
 
 async function sweepInactiveTabs(): Promise<void> {
@@ -285,11 +275,9 @@ async function sweepInactiveTabs(): Promise<void> {
 // --- Automatic restore when the user reopens a frozen tab ---------------------
 
 const restoring = new Set<number>();
-let benchmarkActive = false;
 
 async function autoRestoreOnActivation(tabId: number): Promise<void> {
-  // The benchmark drives freeze/restore itself; auto-restore would race it.
-  if (benchmarkActive || restoring.has(tabId)) return;
+  if (restoring.has(tabId)) return;
   const tab = await findTab(tabId).catch(() => null);
   if (!tab?.discarded) return;
   if (!(await isFrozen(tabId))) return; // only tabs we froze ourselves
@@ -340,32 +328,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (type === "LTO_RESTORE_TAB") {
     restoreTab((msg as { tabId: number }).tabId)
       .then((outcome) => sendResponse({ ok: true, hydration: outcome.hydration, totalMs: outcome.totalMs }))
-      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
-    return true;
-  }
-  if (type === "LTO_MEMORY_SNAPSHOT") {
-    sampleAllRenderers()
-      .then((sample) => sendResponse({ ok: true, sample }))
-      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
-    return true;
-  }
-  if (type === "LTO_BENCH_RUN") {
-    const tabIds = (msg as { tabIds?: number[] }).tabIds;
-    benchmarkActive = true;
-    runBenchmark(tabIds)
-      .then(async (run) => {
-        await chrome.storage.local.set({ [BENCH_RESULT_KEY]: run });
-        sendResponse({ ok: true, run });
-      })
-      .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }))
-      .finally(() => {
-        benchmarkActive = false;
-      });
-    return true;
-  }
-  if (type === "LTO_BENCH_LATEST") {
-    getLatestBenchmark()
-      .then((run) => sendResponse({ ok: true, run }))
       .catch((e: unknown) => sendResponse({ ok: false, error: String(e) }));
     return true;
   }

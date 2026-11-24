@@ -1,7 +1,7 @@
 # Development and Build Guide
 
-This document explains how to set up, build, load, debug, test, and benchmark
-the extension. It is meant for the next maintainer or developer who needs to
+This document explains how to set up, build, load, debug, and test the
+extension. It is meant for the next maintainer or developer who needs to
 continue the thesis work.
 
 ---
@@ -13,7 +13,6 @@ continue the thesis work.
 | Node.js | 20 or newer (verified on Node 26) |
 | npm | 10 or newer |
 | Chrome / Chromium | 116+ (Manifest V3) |
-| Chrome Dev channel | **Optional** — only for automated RSS sampling via `chrome.processes` |
 
 No Python, native compiler, or Emscripten toolchain is needed. The zstd Wasm
 binary is vendored in `public/zstd/`.
@@ -40,7 +39,6 @@ directly in browser code.
 | `npm run build` | `tsc --noEmit` then `vite build` → `dist/` |
 | `npm run typecheck` | TypeScript only |
 | `npm test` | Runs `tests/*.test.mjs` with `node --test` |
-| `npm run bench` | Pure-JS micro-benchmark (stringify/chunk/batch arithmetic) |
 
 **Always use `npm run build` before loading the extension.** A successful run
 prints a clean Vite asset list; `dist/` is a build artifact and is gitignored.
@@ -91,30 +89,22 @@ src/
                               LTO_PING / LTO_RESTORE_PUSH handlers
   background/
     background.ts             Orchestrates freeze, restore, auto-restore,
-                              inactivity sweep, benchmark messages
+                              and the inactivity sweep
   workers/
     compression.bridge.ts     Service-worker client for the offscreen host
   restoration/
     restoration.ts            Batched hydrateDOM, form restoration, lazy Proxy heap
   storage/
     indexeddb.ts              IndexedDB chunk store via idb-keyval
-  profiling/
-    metrics.ts                Metric types and helpers
-    memory.ts                 chrome.processes RSS sampling
-    benchmark.ts              Fixed-sequence benchmark runner
   ui/
-    popup.html / popup.ts / popup.css   Dashboard: freeze/restore/benchmark/export
+    popup.html / popup.ts / popup.css   Dashboard: freeze/restore controls
 public/
   offscreen.html / offscreen.js         Hidden host for the zstd worker
   compression-worker.js                 Classic Worker running zstd cwrap calls
   zstd/zstd.js, zstd/zstd.wasm           Vendored Emscripten zstd build
-benchmarks/
-  run.mjs                     Pure-JS micro-benchmark
-  lib.mjs, report.mjs         Shared math + report generator for exported runs
 tests/
   contracts.test.mjs          Determinism/batching/protocol contracts
   messaging.test.mjs          Base64 bridge round-trip through offscreen.js
-  benchmark.test.mjs          Benchmark math + wiring contracts
 PHASE.md                      Continuity log: verified state, known issues, next steps
 ```
 
@@ -166,8 +156,7 @@ Defined in `src/shared/types.ts`:
 | `LTO_OFFSCREEN_DECOMPRESS` | background → offscreen | Decompress base64 payload |
 
 Popup-facing messages: `LTO_FREEZE_TAB`, `LTO_RESTORE_TAB`,
-`LTO_DELETE_SNAPSHOT`, `LTO_MEMORY_SNAPSHOT`, `LTO_BENCH_RUN`,
-`LTO_BENCH_LATEST`.
+`LTO_DELETE_SNAPSHOT`.
 
 ---
 
@@ -219,37 +208,37 @@ held in memory only during freeze/restore.
 ## 9. Testing
 
 ```sh
-npm test                       # 32 contract tests (Node test runner)
+npm test                       # contract tests (Node test runner)
 npx tsc --noEmit               # typecheck
-npm run bench                  # pure-JS micro-benchmark
 ```
 
 Tests are source-contract checks plus real VM simulations of `offscreen.js`.
-They verify constants, batching math, base64 round-trip, benchmark wiring, and
-the absence of ML/probabilistic code. They do **not** replace a browser smoke
-test — always load `dist/` and try Freeze/Restore manually after changes.
+They verify constants, batching math, base64 round-trip, and the absence of
+ML/probabilistic code. They do **not** replace a browser smoke test — always
+load `dist/` and try Freeze/Restore manually after changes.
 
 ---
 
-## 10. Benchmarking
+## 10. Memory measurement (external tools)
 
-1. Build and reload the extension.
-2. Open a set of real `http(s)` tabs (active/pinned/audible tabs are skipped).
-3. Popup → **Benchmark all tabs**.
-4. Popup → **Download JSON**; save it (e.g. `result-benchmarks/`).
-5. Summarize:
+The extension does not collect memory metrics. Use Linux tools instead:
 
 ```sh
-node benchmarks/report.mjs result-benchmarks/<file>.json
+sudo apt install smem
+smem -t -k -P chrome            # total PSS/RSS for all Chrome processes
+smem -c "pid rss pss command" -P chrome
 ```
 
-The run records per-tab RSS before/after freeze, compression ratio, phase
-timings, hydration batch statistics, and byte-exact fidelity
-(`stableStringify` before compression vs. after decompression).
+For whole-browser totals, run Chrome in its own cgroup and read the counter:
 
-`chrome.processes` is a Chrome **Dev-channel** API. If unavailable, runs still
-report compression/fidelity/timings and set `memoryApiAvailable: false`; use
-Chrome Task Manager (`Shift+Esc`) for manual RSS readings in that case.
+```sh
+systemd-run --user --scope -p MemoryAccounting=yes \
+  google-chrome --user-data-dir=/tmp/chrome-bench
+systemd-cgtop --user
+```
+
+Use a fresh profile per trial, disable Chrome Memory Saver, open the same URL
+set, let pages settle, and report mean PSS across repeated runs.
 
 ---
 
@@ -259,12 +248,11 @@ Chrome Task Manager (`Shift+Esc`) for manual RSS readings in that case.
 |---|---|
 | `ReferenceError: Worker is not defined` | Service worker tried to create a Worker — keep compression in the offscreen document |
 | `SyntaxError: Unexpected end of JSON input` | Binary crossed `runtime.sendMessage` unencoded — use base64 helpers |
-| `No tab with id: ...` | Stale tab IDs or lookup API mismatch — benchmark re-queries tabs; `findTab` uses `tabs.query` |
+| `No tab with id: ...` | Stale tab ID — `findTab` uses `tabs.query`; reload the extension and retry |
 | `content script not ready in tab ...` | Injection failed/timeout — check page type; `chrome://` pages cannot be injected |
 | Empty/cleared form fields after restore | Key mismatch — restoration tries id/name before index; check `#id`/`name` attributes |
 | `wasm` / CSP errors | `content_security_policy` must include `'wasm-unsafe-eval'`; rebuild manifest |
 | `data:video/mp2t...` in bundle | Vite inlined a worker as a data URL — the literal worker pattern must stay in `public/` |
-| Benchmark shows `memoryApiAvailable: false` | Stable Chrome — expected; use Task Manager for RSS |
 
 ---
 

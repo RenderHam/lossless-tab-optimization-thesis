@@ -32,7 +32,7 @@ Native memory-saving features (such as Chrome Memory Saver or Firefox Tab Unload
 ## Development
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the full setup, build,
-loading, debugging, testing, benchmarking, and troubleshooting guide.
+loading, debugging, testing, and troubleshooting guide.
 
 Quick start:
 
@@ -52,35 +52,24 @@ manifest.json / vite.config.ts / tsconfig.json
 src/
   shared/        types, codec (stable stringify, base64 helpers, chunking)
   content/       BFS DOM capture, form/scroll extraction, message handlers
-  background/    freeze/restore orchestration, auto-restore, benchmark messages
+  background/    freeze/restore orchestration and auto-restore
   workers/       compression.bridge.ts (offscreen client)
   restoration/   batched hydration, form restore, lazy Proxy heap
   storage/       IndexedDB chunk store (idb-keyval)
-  profiling/     metrics, memory sampler, benchmark runner
   ui/            popup dashboard
 public/
   offscreen.html / offscreen.js   hidden host for the zstd worker
   compression-worker.js           classic Worker using vendored zstd
   zstd/                           vendored Emscripten glue + wasm
-benchmarks/      micro-benchmark, report script, shared math
-tests/           contract, messaging, and benchmark tests
+tests/           contract and messaging tests
 PHASE.md         continuity log (verified state, known issues, next steps)
 ```
 
-## Automated Benchmarking
+## Memory Measurement
 
-Load `dist/` unpacked in Chrome, open a set of real http(s) tabs, then use the
-popup's **Benchmark all tabs** button. It samples per-tab renderer RSS via
-`chrome.processes`, freezes and restores each tab, verifies byte-exact state
-fidelity, and reports compression ratios and hydration timings. Export the run
-as JSON with **Download JSON**, then summarize it with:
-
-```sh
-node benchmarks/report.mjs <results.json>
-```
-
-(`chrome.processes` is a Chrome Dev-channel API; if unavailable, the run still
-reports compression/fidelity and flags the missing RSS data.)
+Memory footprint is measured externally with Linux tools such as `smem`
+(PSS/RSS per Chrome process) and cgroups v2 via `systemd-run --user --scope`
+(whole-browser total). The extension itself does not collect memory metrics.
 
 ## 14-Week Development Roadmap
 
