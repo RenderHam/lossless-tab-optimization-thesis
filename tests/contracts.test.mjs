@@ -74,6 +74,11 @@ describe("deterministic contracts", () => {
     assert.match(contentSrc, /MSG_RESTORE_PUSH/);
     assert.match(contentSrc, /hydrateDOM\(state, document\.documentElement\)/);
   });
+  it("restore falls back to the latest snapshot with the same URL", () => {
+    assert.match(bgSrc, /listSnapshots\(\)/);
+    assert.match(bgSrc, /m\.url === current\.url/);
+    assert.match(bgSrc, /no snapshot for tab/);
+  });
   it("background reloads discarded tabs, waits for readiness, then pushes state", () => {
     assert.match(bgSrc, /chrome\.tabs\.reload\(tabId\)/);
     assert.match(bgSrc, /waitForTabComplete\(tabId\)/);

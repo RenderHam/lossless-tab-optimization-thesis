@@ -21,7 +21,13 @@ import {
   MSG_RESTORE_PUSH,
   type SerializedTabState,
 } from "../shared/types";
-import { deleteTabSnapshot, readAllChunks, readMeta, writeCompressedChunks } from "../storage/indexeddb";
+import {
+  deleteTabSnapshot,
+  listSnapshots,
+  readAllChunks,
+  readMeta,
+  writeCompressedChunks,
+} from "../storage/indexeddb";
 
 // --- Explicit deterministic policy constants -------------------------------
 export const INACTIVITY_THRESHOLD_MIN = 15; // minutes before a tab is eligible
@@ -205,8 +211,26 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   const started = performance.now();
   await ensureBridge();
 
-  // 1. Read 64 KiB chunks from IndexedDB in order and decompress in the worker.
-  const { meta, data } = await readAllChunks(tabId);
+  // 1. Find the snapshot. Chrome can assign a new tab id after a discard, so
+  //    fall back to the most recent snapshot with the same URL.
+  let snapshotTabId = tabId;
+  const direct = await readMeta(tabId).catch(() => undefined);
+  if (!direct) {
+    const current = await findTab(tabId).catch(() => null);
+    const candidates = await listSnapshots().catch(() => []);
+    const match = candidates
+      .filter((m) => current && m.url === current.url)
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+    if (!match) {
+      throw new Error(
+        `no snapshot for tab ${tabId} (${current?.url ?? "unknown URL"}); freeze it first`,
+      );
+    }
+    snapshotTabId = match.tabId;
+  }
+
+  // Read 64 KiB chunks from IndexedDB in order and decompress in the worker.
+  const { meta, data } = await readAllChunks(snapshotTabId);
   const decompressStart = performance.now();
   const raw = await bridge.decompress(data);
   if (raw.length === 0) {
@@ -239,9 +263,10 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   if (!res?.ok) throw new Error(res?.error ?? "hydration failed in content script");
 
   // Snapshot consumed — don't resurrect stale state on a later discard.
-  await deleteTabSnapshot(tabId);
+  await deleteTabSnapshot(snapshotTabId);
   const saved = (await chrome.storage.local.get("lto-frozen")) as { "lto-frozen"?: number[] };
   const frozen = new Set(saved["lto-frozen"] ?? []);
+  frozen.delete(snapshotTabId);
   frozen.delete(tabId);
   await chrome.storage.local.set({ "lto-frozen": [...frozen] });
 

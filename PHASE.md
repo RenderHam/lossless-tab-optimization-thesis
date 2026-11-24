@@ -92,6 +92,8 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
   `[name=...]` / capture index. Values are re-applied a second time on the next
   idle frame so page scripts cannot wipe the user's last input.
 - Tab lookups use `chrome.tabs.query({})` via `findTab`, with labelled errors.
+- Restore falls back to the most recent snapshot with the same URL when Chrome
+  assigns a new tab id after discard; otherwise reports "no snapshot ... freeze it first".
 - Icons are generated placeholder PNGs (`src/ui/icons/`), replace before defense.
 - `PROMPT.md` citation cleanup was committed together with the skeleton.
 
