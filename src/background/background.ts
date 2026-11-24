@@ -42,7 +42,11 @@ async function ensureBridge(): Promise<void> {
 async function injectContentScript(tabId: number): Promise<void> {
   const file = chrome.runtime.getManifest().content_scripts?.[0]?.js?.[0];
   if (!file) throw new Error("no content script declared in manifest");
-  await chrome.scripting.executeScript({ target: { tabId }, files: [file] });
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: [file] });
+  } catch (err) {
+    throw new Error(`inject content script failed for tab ${tabId}: ${String(err)}`);
+  }
 }
 
 /**
@@ -90,9 +94,12 @@ async function captureTab(tabId: number): Promise<SerializedTabState> {
   if (!(await ping(tabId))) await injectContentScript(tabId);
   await waitForContentScript(tabId);
 
-  const res = (await chrome.tabs.sendMessage(tabId, { type: MSG_CAPTURE_REQUEST, tabId })) as
-    | { ok: boolean; state?: SerializedTabState; error?: string }
-    | undefined;
+  let res: { ok: boolean; state?: SerializedTabState; error?: string } | undefined;
+  try {
+    res = (await chrome.tabs.sendMessage(tabId, { type: MSG_CAPTURE_REQUEST, tabId })) as typeof res;
+  } catch (err) {
+    throw new Error(`capture message failed for tab ${tabId}: ${String(err)}`);
+  }
   if (!res?.ok || !res.state) throw new Error(res?.error ?? `capture failed for tab ${tabId}`);
   return res.state;
 }
@@ -211,15 +218,22 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   // 2. A discarded tab has no renderer — reload it so the content script runs.
   const tab = await findTab(tabId);
   if (tab.discarded) {
-    await chrome.tabs.reload(tabId);
+    try {
+      await chrome.tabs.reload(tabId);
+    } catch (err) {
+      throw new Error(`reload failed for tab ${tabId}: ${String(err)}`);
+    }
     await waitForTabComplete(tabId);
   }
   await waitForContentScript(tabId);
 
   // 3. Push the state to the content script, which hydrates it in batches.
-  const res = (await chrome.tabs.sendMessage(tabId, { type: MSG_RESTORE_PUSH, state })) as
-    | { ok: boolean; stats?: HydrationStats; error?: string }
-    | undefined;
+  let res: { ok: boolean; stats?: HydrationStats; error?: string } | undefined;
+  try {
+    res = (await chrome.tabs.sendMessage(tabId, { type: MSG_RESTORE_PUSH, state })) as typeof res;
+  } catch (err) {
+    throw new Error(`restore message failed for tab ${tabId}: ${String(err)}`);
+  }
   if (!res?.ok) throw new Error(res?.error ?? "hydration failed in content script");
 
   // Snapshot consumed — don't resurrect stale state on a later discard.
