@@ -17,6 +17,12 @@ browser process tree:
 Pure Python 3 standard library. No pip dependencies. Requires PowerShell on
 Windows.
 
+Note on extension loading: Chrome 137+ blocks the old `--load-extension`
+flag on Google Chrome builds ("--load-extension is not allowed in Google
+Chrome, ignoring"). This tool therefore installs the extension through the
+DevTools protocol (`Extensions.loadUnpacked`) using the tiny stdlib
+WebSocket client below, with `--enable-unsafe-extension-debugging`.
+
 Usage:
   python3 tools/memory-bench/bench.py run --name baseline --out results/baseline.json
   python3 tools/memory-bench/bench.py run --name extension --extension dist --out results/extension.json
@@ -29,12 +35,16 @@ import json
 import os
 import shutil
 import signal
+import socket
 import statistics
+import struct
 import subprocess
 import sys
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 IS_WINDOWS = os.name == "nt"
 CLK_TCK = os.sysconf("SC_CLK_TCK") if not IS_WINDOWS else 1
@@ -323,6 +333,138 @@ def terminate_chrome(proc: subprocess.Popen):
         proc.wait(timeout=5)
 
 
+# --------------------------------------------------------------------------
+# Minimal stdlib WebSocket client (for CDP Extensions.loadUnpacked)
+# --------------------------------------------------------------------------
+# Chrome 137+ blocks --load-extension, so the extension is installed through
+# the DevTools protocol instead. Only the small RFC 6455 subset needed for
+# local text messages is implemented: client masking, 16/64-bit lengths,
+# fragmentation, ping/pong. Plain ws:// to 127.0.0.1 only — no TLS.
+
+
+class _MiniWS:
+    def __init__(self, sock, leftover=b""):
+        self.sock = sock
+        self.buf = leftover
+
+    def _read(self, n):
+        while len(self.buf) < n:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise ConnectionError("websocket closed")
+            self.buf += chunk
+        out, self.buf = self.buf[:n], self.buf[n:]
+        return out
+
+    def recv(self):
+        data = b""
+        while True:
+            b1, b2 = self._read(2)
+            fin = bool(b1 & 0x80)
+            opcode = b1 & 0x0F
+            masked = bool(b2 & 0x80)
+            ln = b2 & 0x7F
+            if ln == 126:
+                ln = struct.unpack(">H", self._read(2))[0]
+            elif ln == 127:
+                ln = struct.unpack(">Q", self._read(8))[0]
+            mask = self._read(4) if masked else None
+            payload = self._read(ln) if ln else b""
+            if mask:
+                payload = bytes(payload[i] ^ mask[i % 4] for i in range(len(payload)))
+            if opcode == 0x8:
+                raise ConnectionError("websocket closed by peer")
+            if opcode == 0x9:  # ping -> pong
+                self._send(payload, 0xA)
+                continue
+            if opcode == 0xA:  # pong
+                continue
+            data += payload
+            if fin:
+                return data.decode("utf-8", "replace")
+
+    def _send(self, payload, opcode=0x1):
+        if isinstance(payload, str):
+            payload = payload.encode()
+        mask = os.urandom(4)
+        header = bytes([0x80 | opcode])
+        ln = len(payload)
+        if ln < 126:
+            header += bytes([0x80 | ln])
+        elif ln < 65536:
+            header += bytes([0x80 | 126]) + struct.pack(">H", ln)
+        else:
+            header += bytes([0x80 | 127]) + struct.pack(">Q", ln)
+        masked = bytes(payload[i] ^ mask[i % 4] for i in range(ln))
+        self.sock.sendall(header + mask + masked)
+
+    def call(self, obj, timeout=20):
+        self._send(json.dumps(obj))
+        self.sock.settimeout(timeout)
+        while True:
+            reply = json.loads(self.recv())
+            if reply.get("id") == obj.get("id"):
+                return reply
+
+    def close(self):
+        try:
+            self.sock.close()
+        except OSError:
+            pass
+
+
+def free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def load_extension_via_cdp(port: int, extension_dir: Path) -> str:
+    """Install an unpacked extension through CDP; returns the extension id."""
+    deadline = time.time() + 25
+    ver = None
+    while ver is None:
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2) as r:
+                ver = json.loads(r.read())
+        except Exception:
+            if time.time() > deadline:
+                raise SystemExit("Chrome DevTools endpoint never came up; cannot load extension")
+            time.sleep(0.3)
+    path = urlparse(ver["webSocketDebuggerUrl"]).path
+    sock = socket.create_connection(("127.0.0.1", port), timeout=10)
+    key = base64.b64encode(os.urandom(16)).decode()
+    sock.sendall(
+        (
+            f"GET {path} HTTP/1.1\r\n"
+            f"Host: 127.0.0.1:{port}\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Key: {key}\r\n"
+            "Sec-WebSocket-Version: 13\r\n\r\n"
+        ).encode()
+    )
+    buf = b""
+    while b"\r\n\r\n" not in buf:
+        chunk = sock.recv(4096)
+        if not chunk:
+            raise SystemExit("websocket handshake failed: connection closed")
+        buf += chunk
+    head, rest = buf.split(b"\r\n\r\n", 1)
+    if b"101" not in head.split(b"\r\n")[0]:
+        raise SystemExit(f"websocket handshake failed: {head[:200]!r}")
+    ws = _MiniWS(sock, rest)
+    try:
+        reply = ws.call(
+            {"id": 1, "method": "Extensions.loadUnpacked", "params": {"path": str(extension_dir)}}
+        )
+    finally:
+        ws.close()
+    if "error" in reply:
+        raise SystemExit(f"could not load extension {extension_dir}: {reply['error']}")
+    return reply["result"]["id"]
+
+
 def run_case(args) -> dict:
     chrome = detect_chrome(args.chrome)
     memory_source = detect_memory_source(args.memory_source)
@@ -344,10 +486,18 @@ def run_case(args) -> dict:
         extension_dir = Path(args.extension).resolve()
         if not extension_dir.is_dir():
             raise SystemExit(f"Extension directory not found: {extension_dir}")
-        cmd += [
-            f"--disable-extensions-except={extension_dir}",
-            f"--load-extension={extension_dir}",
-        ]
+    # Identical flags for baseline and extension runs so the comparison is
+    # fair; the debugging port is only *connected* when loading an extension.
+    debug_port = free_port()
+    cmd += [
+        f"--remote-debugging-port={debug_port}",
+        "--remote-allow-origins=*",
+        "--enable-unsafe-extension-debugging",
+        "--disable-background-timer-throttling",
+        "--disable-renderer-backgrounding",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-features=MemorySaverMode,CalculateNativeWinOcclusion",
+    ]
     cmd += urls
 
     print(f"[{args.name}] launching: {chrome}")
@@ -362,6 +512,9 @@ def run_case(args) -> dict:
     samples = []
     prev_cpu = prev_time = None
     try:
+        if extension_dir:
+            ext_id = load_extension_via_cdp(debug_port, extension_dir)
+            print(f"[{args.name}] extension loaded: {ext_id}")
         time.sleep(args.warmup)
         print(f"[{args.name}] sampling {args.samples} times every {args.interval}s...")
         for i in range(args.samples):
