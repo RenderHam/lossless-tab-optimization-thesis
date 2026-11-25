@@ -32,7 +32,9 @@ Native memory-saving features (such as Chrome Memory Saver or Firefox Tab Unload
 ## Development
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the full setup, build,
-loading, debugging, testing, and troubleshooting guide.
+loading, debugging, testing, and troubleshooting guide. For how the pipeline
+works internally — capture, compression, teardown, restore — see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Quick start:
 

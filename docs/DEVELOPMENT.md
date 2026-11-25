@@ -112,6 +112,9 @@ PHASE.md                      Continuity log: verified state, known issues, next
 
 ## 5. Architecture: how the pieces talk
 
+For a full walkthrough of the pipeline, the memory model, every source file,
+and the trade-offs, see [`docs/ARCHITECTURE.md`](ARCHITECTURE.md).
+
 There are four isolated JavaScript contexts:
 
 ```
