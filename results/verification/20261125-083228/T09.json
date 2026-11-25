@@ -1,0 +1,56 @@
+{
+  "test": "T09",
+  "name": "determinism of capture+compression",
+  "run": "20261125-083228",
+  "started": "2026-11-25T00:44:33.926391+00:00",
+  "finished": "2026-11-25T00:44:36.709369+00:00",
+  "threshold": "3 freezes of the same page: identical rawBytes and identical SHA-256 of decompressed state minus runtime-only fields (timestamp, tabId, heapSnapshotRef); no other field may vary",
+  "result": "pass",
+  "metrics": {
+    "runs": [
+      {
+        "rawBytes": 20426,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "76d2a73fff49519b2d91ee33040f223657e983d882a7e28384ba405627e90d0b"
+      },
+      {
+        "rawBytes": 20426,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "76d2a73fff49519b2d91ee33040f223657e983d882a7e28384ba405627e90d0b"
+      },
+      {
+        "rawBytes": 20426,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "76d2a73fff49519b2d91ee33040f223657e983d882a7e28384ba405627e90d0b"
+      }
+    ],
+    "distinct_hashes": 1,
+    "distinct_raw_bytes": 1,
+    "excluded_fields": [
+      "timestamp",
+      "tabId",
+      "heapSnapshotRef"
+    ],
+    "varying_fields": [
+      "heapSnapshotRef",
+      "tabId",
+      "timestamp"
+    ]
+  },
+  "notes": [],
+  "artifacts": [
+    "T09-run1.zst",
+    "T09-run2.zst",
+    "T09-run3.zst",
+    "T09-run1.json",
+    "T09-run2.json",
+    "T09-run3.json"
+  ],
+  "config": {
+    "fixture": "medium.html",
+    "runs": 3
+  }
+}

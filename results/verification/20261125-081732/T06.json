@@ -1,0 +1,389 @@
+{
+  "test": "T06",
+  "name": "aggregate memory saving across 50 tabs",
+  "run": "20261125-081732",
+  "started": "2026-11-25T00:17:33.496150+00:00",
+  "finished": "2026-11-25T00:19:31.242437+00:00",
+  "threshold": "aggregate saving >= 50.0% (claim: 80%)",
+  "result": "pass",
+  "metrics": {
+    "tabs": 50,
+    "freeze_ok": 50,
+    "pss_before": 2708972544,
+    "pss_after": 528397824,
+    "pss_after_transient": 691540992,
+    "saved_bytes": 2180574720,
+    "saved_pct": 80.49,
+    "transient_saved_pct": 74.47,
+    "tabs_exited": 51,
+    "tabs_held_bytes": 2291402752,
+    "tab_reclaimed_pct": 100.0,
+    "avg_tab_mib": 43.7,
+    "baseline_after_mib": 503.9,
+    "processes_before": 64,
+    "processes_after": 13,
+    "freeze_total_ms_p95": 41,
+    "rows": [
+      {
+        "url": "http://x002.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 45.099999997764826
+      },
+      {
+        "url": "http://x003.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 41.69999999925494
+      },
+      {
+        "url": "http://x004.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 39.70000000298023
+      },
+      {
+        "url": "http://x005.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 38.80000000074506
+      },
+      {
+        "url": "http://x006.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 41
+      },
+      {
+        "url": "http://x007.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.19999999925494
+      },
+      {
+        "url": "http://x008.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.69999999925494
+      },
+      {
+        "url": "http://x009.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.5
+      },
+      {
+        "url": "http://x010.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13647,
+        "error": null,
+        "totalMs": 35.5
+      },
+      {
+        "url": "http://x011.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13647,
+        "error": null,
+        "totalMs": 35.399999998509884
+      },
+      {
+        "url": "http://x012.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 39.19999999925494
+      },
+      {
+        "url": "http://x013.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.79999999701977
+      },
+      {
+        "url": "http://x014.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 35.69999999925494
+      },
+      {
+        "url": "http://x015.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.69999999925494
+      },
+      {
+        "url": "http://x016.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 33.100000001490116
+      },
+      {
+        "url": "http://x017.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34.69999999925494
+      },
+      {
+        "url": "http://x018.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 35.100000001490116
+      },
+      {
+        "url": "http://x019.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35
+      },
+      {
+        "url": "http://x020.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13647,
+        "error": null,
+        "totalMs": 34.400000002235174
+      },
+      {
+        "url": "http://x021.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 34.19999999925494
+      },
+      {
+        "url": "http://x022.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34.19999999925494
+      },
+      {
+        "url": "http://x023.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34.80000000074506
+      },
+      {
+        "url": "http://x024.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34
+      },
+      {
+        "url": "http://x025.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.900000002235174
+      },
+      {
+        "url": "http://x026.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 34
+      },
+      {
+        "url": "http://x027.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 37.600000001490116
+      },
+      {
+        "url": "http://x028.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 33.399999998509884
+      },
+      {
+        "url": "http://x029.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34.599999997764826
+      },
+      {
+        "url": "http://x030.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 37.400000002235174
+      },
+      {
+        "url": "http://x031.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34.600000001490116
+      },
+      {
+        "url": "http://x032.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.5
+      },
+      {
+        "url": "http://x033.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.899999998509884
+      },
+      {
+        "url": "http://x034.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 34.19999999925494
+      },
+      {
+        "url": "http://x035.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.70000000298023
+      },
+      {
+        "url": "http://x036.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 36.099999997764826
+      },
+      {
+        "url": "http://x037.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.69999999925494
+      },
+      {
+        "url": "http://x038.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 35.099999997764826
+      },
+      {
+        "url": "http://x039.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 36.80000000074506
+      },
+      {
+        "url": "http://x040.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.900000002235174
+      },
+      {
+        "url": "http://x041.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 37.5
+      },
+      {
+        "url": "http://x042.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 37.600000001490116
+      },
+      {
+        "url": "http://x043.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13643,
+        "error": null,
+        "totalMs": 35.900000002235174
+      },
+      {
+        "url": "http://x044.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 37.900000002235174
+      },
+      {
+        "url": "http://x045.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.80000000074506
+      },
+      {
+        "url": "http://x046.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 34
+      },
+      {
+        "url": "http://x047.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.69999999925494
+      },
+      {
+        "url": "http://x048.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13644,
+        "error": null,
+        "totalMs": 34
+      },
+      {
+        "url": "http://x049.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 35.400000002235174
+      },
+      {
+        "url": "http://x050.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13646,
+        "error": null,
+        "totalMs": 34.80000000074506
+      },
+      {
+        "url": "http://x051.lto.test:8123/heavy.html",
+        "ok": true,
+        "compressedBytes": 13645,
+        "error": null,
+        "totalMs": 33.600000001490116
+      }
+    ]
+  },
+  "notes": [
+    "all tabs froze",
+    "steady 80.5% vs transient 74.5%; avg tab 44 MiB, baseline 504 MiB"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 50,
+    "fixture": "heavy.html (+24 MiB deterministic heap)",
+    "sites": "distinct subdomains of lto.test"
+  }
+}

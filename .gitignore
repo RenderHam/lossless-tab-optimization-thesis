@@ -6,3 +6,6 @@ tools/memory-bench/profiles/
 tools/memory-bench/results/
 __pycache__/
 *.pyc
+tools/thesis-verify/.venv/
+tools/thesis-verify/profiles/
+tools/thesis-verify/__pycache__/

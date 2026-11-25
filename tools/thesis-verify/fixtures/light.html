@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LTO fixture — light</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+  .row { padding: 4px 8px; border-bottom: 1px solid #eee; }
+  .filler { height: 2400px; background: linear-gradient(#fff, #f4f6ff); }
+</style>
+</head>
+<body>
+<header><h1>Light fixture</h1><p>Deterministic static page. No timers, no randomness.</p></header>
+<main id="main"></main>
+<div class="filler"></div>
+<footer>end of page</footer>
+<script>
+  // Deterministic DOM build: same output on every load.
+  var main = document.getElementById("main");
+  for (var i = 0; i < 40; i++) {
+    var row = document.createElement("div");
+    row.className = "row";
+    row.textContent = "Row " + i + " · item " + (i % 97);
+    main.appendChild(row);
+  }
+  document.body.setAttribute("data-lto-fixture", "light");
+</script>
+</body>
+</html>

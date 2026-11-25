@@ -1,0 +1,31 @@
+{
+  "test": "T07",
+  "name": "extension idle memory overhead",
+  "run": "20261125-082014",
+  "started": "2026-11-25T00:20:15.032579+00:00",
+  "finished": "2026-11-25T00:23:21.117386+00:00",
+  "threshold": "extension/baseline PSS ratio <= 1.1 (extension loaded, no freeze used)",
+  "result": "pass",
+  "metrics": {
+    "baseline_pss_mean": 474834670.93333334,
+    "extension_pss_mean": 469426517.3333333,
+    "ratio": 0.9886,
+    "delta_bytes": -5408153.600000024,
+    "baseline_cpu_mean": 2.1187074103159205,
+    "extension_cpu_mean": 1.4751365008045862
+  },
+  "notes": [
+    "bench.py runs use their own fresh profiles"
+  ],
+  "artifacts": [
+    "T07-baseline.json",
+    "T07-extension.json",
+    "T07-urls.txt"
+  ],
+  "config": {
+    "bench_tabs": 10,
+    "samples": 30,
+    "interval_s": 2,
+    "warmup_s": 15
+  }
+}

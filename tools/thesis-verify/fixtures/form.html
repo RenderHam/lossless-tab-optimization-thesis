@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LTO fixture — form</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+  label { display: block; margin: 6px 0; max-width: 420px; }
+  input[type=text], input[type=password], textarea, select { width: 100%; box-sizing: border-box; }
+  .filler { height: 2600px; background: linear-gradient(#fff, #fff6ec); }
+  #status { font-weight: 700; color: #2a6; }
+</style>
+</head>
+<body>
+<h1>Form fixture</h1>
+<p id="status">idle</p>
+<form id="f" onsubmit="return false">
+  <label>Name <input type="text" id="f-name" value="server-name"></label>
+  <label>Email <input type="text" name="email" value="srv@example.test"></label>
+  <label>Nick <input type="text" id="f-nick"></label>
+  <label>Plain <input type="text"></label>
+  <label>Password <input type="password" id="f-pw" value="pw-server"></label>
+  <label><input type="checkbox" id="f-agree" checked> Agree</label>
+  <label><input type="radio" name="plan" value="basic"> Basic
+         <input type="radio" name="plan" value="pro" checked> Pro</label>
+  <label>Bio <textarea id="f-bio" rows="4">server bio text</textarea></label>
+  <label>Country <select id="f-country">
+    <option value="de">Germany</option>
+    <option value="jp" selected>Japan</option>
+    <option value="br">Brazil</option>
+  </select></label>
+  <label>Languages <select id="f-langs" multiple size="3">
+    <option value="en" selected>English</option>
+    <option value="de">German</option>
+    <option value="ja" selected>Japanese</option>
+    <option value="pt">Portuguese</option>
+  </select></label>
+</form>
+<div class="filler"></div>
+<footer>end of form page</footer>
+<script>
+  // Deterministic load-time mutation, identical on every load.
+  document.getElementById("status").setAttribute("data-ready", "1");
+  document.body.setAttribute("data-lto-fixture", "form");
+</script>
+</body>
+</html>

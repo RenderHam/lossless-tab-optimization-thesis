@@ -1,0 +1,204 @@
+{
+  "test": "T05",
+  "name": "per-tab memory saving",
+  "run": "20261125-072140",
+  "started": "2026-11-24T23:21:41.533080+00:00",
+  "finished": "2026-11-24T23:24:09.940206+00:00",
+  "threshold": "mean >= 70.0% and p10 >= 60.0% (claim: 90%)",
+  "result": "pass",
+  "metrics": {
+    "tabs_attempted": 8,
+    "tabs_attributed": 8,
+    "mean_saved_pct": 100.0,
+    "p10_saved_pct": 100.0,
+    "mean_tree_saved_pct": 71.24,
+    "renderers_exited": 8,
+    "rows": [
+      {
+        "url": "http://x002.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190779,
+        "renderer_exited": true,
+        "tab_pss_bytes": 29049856,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 714113433,
+        "tree_pss_after": 633029836,
+        "tree_saved_bytes": 81083597,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 279.12,
+        "wall_ms": 11800.7,
+        "timings": {
+          "captureMs": 54.5,
+          "compressMs": 48.80000000074506,
+          "storeMs": 2,
+          "totalMs": 122
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x003.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190792,
+        "renderer_exited": true,
+        "tab_pss_bytes": 27131904,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 619479859,
+        "tree_pss_after": 600878489,
+        "tree_saved_bytes": 18601370,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 68.56,
+        "wall_ms": 11447.2,
+        "timings": {
+          "captureMs": 47.100000001490116,
+          "compressMs": 42.69999999925494,
+          "storeMs": 2.699999999254942,
+          "totalMs": 108.40000000223517
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x004.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190807,
+        "renderer_exited": true,
+        "tab_pss_bytes": 27947008,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 594249932,
+        "tree_pss_after": 589433241,
+        "tree_saved_bytes": 4816691,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 17.24,
+        "wall_ms": 11305.1,
+        "timings": {
+          "captureMs": 48.69999999925494,
+          "compressMs": 36.30000000074506,
+          "storeMs": 2.5,
+          "totalMs": 103.39999999850988
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x005.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190839,
+        "renderer_exited": true,
+        "tab_pss_bytes": 29278208,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 588000256,
+        "tree_pss_after": 576296755,
+        "tree_saved_bytes": 11703501,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 39.97,
+        "wall_ms": 6067.1,
+        "timings": {
+          "captureMs": 18,
+          "compressMs": 13.199999999254942,
+          "storeMs": 1.1000000014901161,
+          "totalMs": 39.100000001490116
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x006.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190870,
+        "renderer_exited": true,
+        "tab_pss_bytes": 30097408,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 574731673,
+        "tree_pss_after": 558325555,
+        "tree_saved_bytes": 16406118,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 54.51,
+        "wall_ms": 6336.0,
+        "timings": {
+          "captureMs": 25.5,
+          "compressMs": 20.199999999254942,
+          "storeMs": 1.2000000029802322,
+          "totalMs": 56
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x007.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190890,
+        "renderer_exited": true,
+        "tab_pss_bytes": 32097280,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 558111539,
+        "tree_pss_after": 542374912,
+        "tree_saved_bytes": 15736627,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 49.03,
+        "wall_ms": 6771.0,
+        "timings": {
+          "captureMs": 25.300000000745058,
+          "compressMs": 20.5,
+          "storeMs": 1.5,
+          "totalMs": 58.80000000074506
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x008.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190908,
+        "renderer_exited": true,
+        "tab_pss_bytes": 34670592,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 536878899,
+        "tree_pss_after": 527107891,
+        "tree_saved_bytes": 9771008,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 28.18,
+        "wall_ms": 5276.1,
+        "timings": {
+          "captureMs": 19.199999999254942,
+          "compressMs": 13,
+          "storeMs": 0.9000000022351742,
+          "totalMs": 38.900000002235174
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x009.lto.test:8123/heavy.html",
+        "ok": true,
+        "error": null,
+        "renderer_pid": 190941,
+        "renderer_exited": true,
+        "tab_pss_bytes": 38590464,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 525963059,
+        "tree_pss_after": 513105510,
+        "tree_saved_bytes": 12857549,
+        "process_saved_pct": 100.0,
+        "tree_saved_pct": 33.32,
+        "wall_ms": 6561.8,
+        "timings": {
+          "captureMs": 24.899999998509884,
+          "compressMs": 20.400000002235174,
+          "storeMs": 1.199999999254942,
+          "totalMs": 55.19999999925494
+        },
+        "attributed": true
+      }
+    ]
+  },
+  "notes": [
+    "0 tab(s) unattributed or failed"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 8,
+    "fixture": "heavy.html",
+    "attribution": "per-renderer PSS via smem"
+  }
+}

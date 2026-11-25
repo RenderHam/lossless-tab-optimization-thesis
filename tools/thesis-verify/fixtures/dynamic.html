@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LTO fixture — dynamic</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; display: flex; min-height: 100vh; }
+  nav { width: 220px; background: #1d2333; color: #dde; padding: 12px; }
+  nav a { display: block; color: #9ab; text-decoration: none; padding: 4px 0; }
+  main { flex: 1; padding: 16px; }
+  .card { border: 1px solid #e1e3e8; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+  .filler { height: 2400px; }
+</style>
+</head>
+<body>
+<script>
+  // "Framework-like" build: everything is created by script at load time,
+  // deterministically. Event listeners are attached but never mutate the DOM.
+  var nav = document.createElement("nav");
+  var h = document.createElement("h2"); h.textContent = "Dynamic nav";
+  nav.appendChild(h);
+  for (var i = 0; i < 12; i++) {
+    var a = document.createElement("a");
+    a.href = "#sec" + i;
+    a.textContent = "Section " + i;
+    nav.appendChild(a);
+  }
+  var main = document.createElement("main");
+  var title = document.createElement("h1"); title.textContent = "Dynamic fixture";
+  main.appendChild(title);
+  var search = document.createElement("input");
+  search.type = "search"; search.id = "d-search"; search.placeholder = "filter";
+  search.addEventListener("input", function () { /* no DOM mutation */ });
+  main.appendChild(search);
+  for (var j = 0; j < 60; j++) {
+    var card = document.createElement("div");
+    card.className = "card";
+    var t = document.createElement("strong");
+    t.textContent = "Card " + j;
+    var p = document.createElement("p");
+    p.textContent = "Generated node " + j + " with deterministic body text " + (j % 31);
+    card.appendChild(t); card.appendChild(p);
+    main.appendChild(card);
+  }
+  var filler = document.createElement("div");
+  filler.className = "filler";
+  main.appendChild(filler);
+  document.body.appendChild(nav);
+  document.body.appendChild(main);
+  document.body.setAttribute("data-lto-fixture", "dynamic");
+</script>
+</body>
+</html>

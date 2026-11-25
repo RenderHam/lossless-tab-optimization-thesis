@@ -45,6 +45,27 @@ npm test          # contract tests
 Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
 Rebuild and click Reload after every source change.
 
+## Verification (T01–T10)
+
+The thesis claims are checked by an automated, fully recorded suite in
+[`tools/thesis-verify/`](tools/thesis-verify/README.md). It drives a real
+Chrome over CDP and writes one JSON record per test plus an aggregated
+`report.md` under `results/verification/<run-id>/` — failures are recorded
+too, nothing is deleted. Cross-run index: [`results/verification/SUMMARY.md`](results/verification/SUMMARY.md).
+
+```sh
+npx vite build   # the suite tests dist/
+tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
+```
+
+Headline results (see SUMMARY.md for runs and thresholds): freeze success
+50/50, byte-exact restore, **80.49 % aggregate memory saving across 50 tabs**
+(claim: 80 %), 100 % of a frozen tab's renderer PSS reclaimed (claim: 90 %
+per tab; the tree-level figure, which includes Chrome's fixed ~500 MiB
+baseline, is recorded as a conservative secondary metric), idle overhead
+ratio 0.99, freeze p95 18 ms / restore p95 152 ms, identical capture bytes
+across repeated freezes, and no memory slope over 20 cycles.
+
 ## Project Structure
 
 ```text
@@ -62,6 +83,9 @@ public/
   compression-worker.js           classic Worker using vendored zstd
   zstd/                           vendored Emscripten glue + wasm
 tests/           contract and messaging tests
+tools/
+  memory-bench/  external CPU/memory/GPU comparison tool
+  thesis-verify/ recorded verification suite (T01–T10)
 PHASE.md         continuity log (verified state, known issues, next steps)
 ```
 

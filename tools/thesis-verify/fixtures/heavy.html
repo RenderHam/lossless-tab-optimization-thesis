@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LTO fixture — heavy</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+  .row { display: flex; gap: 10px; padding: 5px 8px; border-bottom: 1px solid #ececec; font-size: 13px; }
+  .idx { width: 48px; color: #667; }
+  .lbl { width: 140px; font-weight: 600; }
+  .txt { flex: 1; color: #333; }
+  .filler { height: 2600px; }
+</style>
+</head>
+<body>
+<header><h1>Heavy fixture</h1></header>
+<main id="main"></main>
+<div class="filler"></div>
+<footer>end of heavy page</footer>
+<script>
+  // Deterministic: fixed loop, fixed text, no randomness.
+  var main = document.getElementById("main");
+  var phrase = "Deterministic capture payload line used to give this node real text weight. ";
+  for (var i = 0; i < 620; i++) {
+    var row = document.createElement("div");
+    row.className = "row";
+    var a = document.createElement("span"); a.className = "idx"; a.textContent = "#" + i;
+    var b = document.createElement("span"); b.className = "lbl"; b.textContent = "Label " + (i % 40);
+    var c = document.createElement("span"); c.className = "txt";
+    c.textContent = phrase + "i=" + i + " mod=" + (i % 97);
+    row.appendChild(a); row.appendChild(b); row.appendChild(c);
+    main.appendChild(row);
+  }
+  // Deterministic JS heap (~24 MiB): fixed-size ASCII strings in a fixed
+  // loop — no Date, no Math.random. Real tabs hold heap of this order
+  // (framework state, caches); without it the fixed browser baseline would
+  // dominate any aggregate memory measurement and cap the saving % no
+  // matter how well freezing works.
+  //
+  // The touch loop below is essential, not decoration: V8 builds
+  // String.repeat results as a lazy cons-rope (measured: heap accounting
+  // +0.5 MiB, RSS +0.5 MiB), and the pages only become resident once the
+  // content is read — charCodeAt() flattens each string into real memory
+  // (measured: +31.5 MiB RSS in Node). Reading a fixed index keeps the
+  // value deterministic.
+  var heap = [];
+  var unit = "0123456789abcdef"; // 16 ASCII chars -> one-byte string
+  for (var h = 0; h < 1536; h++) {
+    heap.push(unit.repeat(1024)); // 16 KiB each -> 24 MiB total
+  }
+  var heapSink = 0;
+  for (var k = 0; k < heap.length; k++) {
+    heapSink += heap[k].charCodeAt(k % 16); // forces materialization
+  }
+  document.body.setAttribute("data-lto-fixture", "heavy");
+  document.body.setAttribute("data-heap-kib", String(heap.length * 16));
+  document.body.setAttribute("data-heap-sink", String(heapSink));
+</script>
+</body>
+</html>

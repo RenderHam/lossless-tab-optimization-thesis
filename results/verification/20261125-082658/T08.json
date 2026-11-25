@@ -1,0 +1,259 @@
+{
+  "test": "T08",
+  "name": "freeze/restore latency and spikes",
+  "run": "20261125-082658",
+  "started": "2026-11-25T00:26:59.505288+00:00",
+  "finished": "2026-11-25T00:27:37.025221+00:00",
+  "threshold": "freeze p95 <= 2000.0ms; restore p95 <= 5000.0ms; maxBatchMs <= 50.0ms",
+  "result": "pass",
+  "metrics": {
+    "freeze_total_ms_p95": 18.300000000745058,
+    "restore_total_ms_p95": 152.30000000074506,
+    "max_batch_ms": 0,
+    "freeze_peak_cpu_pct": null,
+    "restore_peak_cpu_pct": null,
+    "rows": [
+      {
+        "phase": "freeze",
+        "url": "http://x002.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 4.600000001490116,
+          "compressMs": 3.199999999254942,
+          "storeMs": 1,
+          "totalMs": 18.100000001490116
+        },
+        "wall_ms": 23.4,
+        "peak_pss": 631431168,
+        "peak_cpu_pct": null,
+        "baseline_pss": 637790720,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x002.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 152.30000000074506,
+        "wall_ms": 155.8,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 639555584,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x003.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 6.599999997764826,
+          "compressMs": 3.300000000745058,
+          "storeMs": 0.8000000007450581,
+          "totalMs": 18.300000000745058
+        },
+        "wall_ms": 23.4,
+        "peak_pss": 636256256,
+        "peak_cpu_pct": null,
+        "baseline_pss": 637938176,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x003.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 145.19999999925494,
+        "wall_ms": 148.5,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 637976576,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x004.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 5.800000000745058,
+          "compressMs": 2.699999999254942,
+          "storeMs": 1.1000000014901161,
+          "totalMs": 16.100000001490116
+        },
+        "wall_ms": 20.8,
+        "peak_pss": 637586432,
+        "peak_cpu_pct": null,
+        "baseline_pss": 638491648,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x004.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 150.19999999925494,
+        "wall_ms": 153.7,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 642521088,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x005.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 5.300000000745058,
+          "compressMs": 3,
+          "storeMs": 0.8999999985098839,
+          "totalMs": 15
+        },
+        "wall_ms": 18.8,
+        "peak_pss": 641775616,
+        "peak_cpu_pct": null,
+        "baseline_pss": 629223936,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x005.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 135.09999999776483,
+        "wall_ms": 138.0,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 630054912,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x006.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 4.900000002235174,
+          "compressMs": 2.199999999254942,
+          "storeMs": 0.5,
+          "totalMs": 13.199999999254942
+        },
+        "wall_ms": 16.8,
+        "peak_pss": 629495808,
+        "peak_cpu_pct": null,
+        "baseline_pss": 629515776,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x006.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 137.60000000149012,
+        "wall_ms": 140.0,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 631089152,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x007.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 3.800000000745058,
+          "compressMs": 1.699999999254942,
+          "storeMs": 0.6000000014901161,
+          "totalMs": 11
+        },
+        "wall_ms": 14.6,
+        "peak_pss": 630163456,
+        "peak_cpu_pct": null,
+        "baseline_pss": 590511616,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x007.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 131.60000000149012,
+        "wall_ms": 134.2,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 589665280,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x008.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 3.800000000745058,
+          "compressMs": 2.300000000745058,
+          "storeMs": 0.6999999992549419,
+          "totalMs": 11.300000000745058
+        },
+        "wall_ms": 14.7,
+        "peak_pss": 589451264,
+        "peak_cpu_pct": null,
+        "baseline_pss": 589512704,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x008.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 132,
+        "wall_ms": 134.8,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 589427712,
+        "peak_cpu_pct": null,
+        "error": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x009.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 3.699999999254942,
+          "compressMs": 2,
+          "storeMs": 0.3999999985098839,
+          "totalMs": 12.199999999254942
+        },
+        "wall_ms": 15.3,
+        "peak_pss": 589299712,
+        "peak_cpu_pct": null,
+        "baseline_pss": 589257728,
+        "error": null
+      },
+      {
+        "phase": "restore",
+        "url": "http://x009.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 144.69999999925494,
+        "wall_ms": 148.1,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 589637632,
+        "peak_cpu_pct": null,
+        "error": null
+      }
+    ]
+  },
+  "notes": [
+    "peak CPU/PSS recorded as spike evidence (no thesis threshold)"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 8,
+    "fixture": "medium.html",
+    "sampler_interval_s": 0.5
+  }
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LTO fixture — medium</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .cell { padding: 6px; background: #f7f8fa; border: 1px solid #e3e5ea; font-size: 13px; }
+  .filler { height: 2600px; }
+  fieldset { margin-top: 12px; max-width: 480px; }
+</style>
+</head>
+<body>
+<header><h1>Medium fixture</h1></header>
+<main id="main" class="grid"></main>
+<fieldset>
+  <legend>Fixture form</legend>
+  <label>User <input type="text" id="m-user" value="srv-user"></label>
+  <label>Note <textarea id="m-note" rows="3">srv-note</textarea></label>
+  <label>Plan <select id="m-plan"><option value="a">A</option><option value="b" selected>B</option></select></label>
+  <label><input type="checkbox" id="m-ok" checked> Opt-in</label>
+</fieldset>
+<div class="filler"></div>
+<footer>end of medium page</footer>
+<script>
+  // Deterministic: no Date, no Math.random, no timers.
+  var main = document.getElementById("main");
+  var words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel"];
+  for (var i = 0; i < 180; i++) {
+    var c = document.createElement("div");
+    c.className = "cell";
+    c.textContent = words[i % 8] + "-" + i + "/" + (i % 13);
+    main.appendChild(c);
+  }
+  document.body.setAttribute("data-lto-fixture", "medium");
+</script>
+</body>
+</html>

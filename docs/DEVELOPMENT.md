@@ -210,12 +210,15 @@ held in memory only during freeze/restore.
 ```sh
 npm test                       # contract tests (Node test runner)
 npx tsc --noEmit               # typecheck
+
+# full browser suite (recorded; see section 11)
+tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
 ```
 
 Tests are source-contract checks plus real VM simulations of `offscreen.js`.
 They verify constants, batching math, base64 round-trip, and the absence of
-ML/probabilistic code. They do **not** replace a browser smoke test — always
-load `dist/` and try Freeze/Restore manually after changes.
+ML/probabilistic code. The recorded suite in section 11 drives a real Chrome
+end to end; for quick manual checks, load `dist/` and try Freeze/Restore.
 
 ---
 
@@ -260,7 +263,40 @@ for the thesis numbers.
 
 ---
 
-## 11. Troubleshooting
+## 11. Recorded verification suite (T01–T10)
+
+`tools/thesis-verify/verify.py` runs the thesis verification matrix against
+the built extension in a real Chrome, driving freeze/restore through the
+extension's own popup message protocol. Full matrix, thresholds, prerequisites
+and metric definitions:
+[`tools/thesis-verify/README.md`](../tools/thesis-verify/README.md).
+
+```sh
+npx vite build   # suite tests dist/
+tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
+tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py report --run <run-id>
+```
+
+Each run (pass **or fail**) is stored under `results/verification/<run-id>/`
+as one JSON record per test plus an aggregated `report.md`; an index of all
+runs is `results/verification/SUMMARY.md`. Nothing is ever deleted.
+
+Suite-specific environment facts:
+
+- Chrome 160 blocks `--load-extension`; the harness (and `bench.py` for T07)
+  load the extension via CDP `Extensions.loadUnpacked` with
+  `--enable-unsafe-extension-debugging`.
+- `chrome.tabs.discard` assigns a **new tab id** each cycle; the harness
+  tracks tabs by URL.
+- Fixtures run on `127.0.0.1:8123` with distinct `*.lto.test` hostnames
+  (`--host-resolver-rules`) so every tab gets its own renderer process and
+  PSS can be attributed per tab.
+- The venv (`tools/thesis-verify/.venv/`) holds only `websocket-client`;
+  it and the Chrome profiles used by the suite are gitignored.
+
+---
+
+## 12. Troubleshooting
 
 | Symptom | Likely cause / fix |
 |---|---|
@@ -274,7 +310,7 @@ for the thesis numbers.
 
 ---
 
-## 12. Contribution conventions
+## 13. Contribution conventions
 
 - Keep commits small and plain-language (e.g. "Fix binary data loss across
   extension messages").

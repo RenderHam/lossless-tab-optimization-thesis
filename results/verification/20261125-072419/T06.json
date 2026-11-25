@@ -1,0 +1,381 @@
+{
+  "test": "T06",
+  "name": "aggregate memory saving across 50 tabs",
+  "run": "20261125-072419",
+  "started": "2026-11-24T23:24:19.511914+00:00",
+  "finished": "2026-11-24T23:25:22.855253+00:00",
+  "threshold": "aggregate saving >= 50.0% (claim: 80%)",
+  "result": "fail",
+  "metrics": {
+    "tabs": 50,
+    "freeze_ok": 50,
+    "pss_before": 1100627456,
+    "pss_after": 583237632,
+    "saved_bytes": 517389824,
+    "saved_pct": 47.01,
+    "processes_before": 64,
+    "processes_after": 14,
+    "freeze_total_ms_p95": 15,
+    "rows": [
+      {
+        "url": "http://x002.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 22.299999997019768
+      },
+      {
+        "url": "http://x003.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.899999998509884
+      },
+      {
+        "url": "http://x004.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 15.5
+      },
+      {
+        "url": "http://x005.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x006.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.399999998509884
+      },
+      {
+        "url": "http://x007.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.300000000745058
+      },
+      {
+        "url": "http://x008.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2592,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x009.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.299999997019768
+      },
+      {
+        "url": "http://x010.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.5
+      },
+      {
+        "url": "http://x011.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 15
+      },
+      {
+        "url": "http://x012.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.199999999254942
+      },
+      {
+        "url": "http://x013.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.800000000745058
+      },
+      {
+        "url": "http://x014.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.100000001490116
+      },
+      {
+        "url": "http://x015.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 15
+      },
+      {
+        "url": "http://x016.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.800000000745058
+      },
+      {
+        "url": "http://x017.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.800000000745058
+      },
+      {
+        "url": "http://x018.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.199999999254942
+      },
+      {
+        "url": "http://x019.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x020.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x021.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.799999997019768
+      },
+      {
+        "url": "http://x022.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.300000000745058
+      },
+      {
+        "url": "http://x023.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 12.199999999254942
+      },
+      {
+        "url": "http://x024.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.100000001490116
+      },
+      {
+        "url": "http://x025.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 14.899999998509884
+      },
+      {
+        "url": "http://x026.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.5
+      },
+      {
+        "url": "http://x027.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x028.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.600000001490116
+      },
+      {
+        "url": "http://x029.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 15
+      },
+      {
+        "url": "http://x030.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.599999997764826
+      },
+      {
+        "url": "http://x031.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.800000000745058
+      },
+      {
+        "url": "http://x032.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 12.5
+      },
+      {
+        "url": "http://x033.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.199999999254942
+      },
+      {
+        "url": "http://x034.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.599999997764826
+      },
+      {
+        "url": "http://x035.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.600000001490116
+      },
+      {
+        "url": "http://x036.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x037.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2592,
+        "error": null,
+        "totalMs": 13.899999998509884
+      },
+      {
+        "url": "http://x038.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 14.099999997764826
+      },
+      {
+        "url": "http://x039.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 14.100000001490116
+      },
+      {
+        "url": "http://x040.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.199999999254942
+      },
+      {
+        "url": "http://x041.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.699999999254942
+      },
+      {
+        "url": "http://x042.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 14.399999998509884
+      },
+      {
+        "url": "http://x043.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 12.600000001490116
+      },
+      {
+        "url": "http://x044.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.099999997764826
+      },
+      {
+        "url": "http://x045.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 12.799999997019768
+      },
+      {
+        "url": "http://x046.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.899999998509884
+      },
+      {
+        "url": "http://x047.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2592,
+        "error": null,
+        "totalMs": 13.5
+      },
+      {
+        "url": "http://x048.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 14.100000001490116
+      },
+      {
+        "url": "http://x049.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 13.099999997764826
+      },
+      {
+        "url": "http://x050.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2594,
+        "error": null,
+        "totalMs": 14.199999999254942
+      },
+      {
+        "url": "http://x051.lto.test:8123/medium.html",
+        "ok": true,
+        "compressedBytes": 2593,
+        "error": null,
+        "totalMs": 13.300000000745058
+      }
+    ]
+  },
+  "notes": [
+    "all tabs froze"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 50,
+    "fixture": "medium.html",
+    "sites": "distinct subdomains of lto.test"
+  }
+}

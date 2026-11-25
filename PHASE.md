@@ -39,13 +39,16 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 | `src/ui/popup.*` | Dashboard: manual freeze/restore per tab |
 | `tests/contracts.test.mjs` | Determinism/batching/protocol contracts |
 | `tests/messaging.test.mjs` | Base64 bridge round-trip through offscreen.js |
-| `tools/memory-bench/bench.py` | External CPU/memory comparison tool (Linux smem/proc, Windows PowerShell; GPU Linux-only) |
+| `tools/memory-bench/bench.py` | External CPU/memory comparison tool (Linux smem/proc, Windows PowerShell; GPU Linux-only); also runs T07's A/B sessions |
+| `tools/thesis-verify/verify.py` | Recorded verification harness: T01–T10, thresholds, JSON + `report.md` per run |
+| `tools/thesis-verify/cdp.py` | Minimal CDP client + `Extensions.loadUnpacked` (Chrome 160 blocks `--load-extension`) |
+| `tools/thesis-verify/fixtures/` | Deterministic test pages served on `127.0.0.1:8123` |
 
-## Verified State (after benchmark removal)
+## Verified State (verification suite complete)
 
 - `npx tsc --noEmit` → clean
 - `npx vite build` → succeeds, output in `dist/`
-- `node --test tests/*.mjs` → 18/18 pass
+- `node --test tests/*.mjs` → 21/21 pass
 - Vendored zstd wasm round-trip verified in a Node VM harness:
   14,500 B → 47 B compressed → byte-exact restoration
 - Browser smoke test: the first run exposed `Worker is not defined` in the MV3
@@ -54,17 +57,35 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
   base64 encoding. Auto-restore on tab activation and form-key fallback added.
 - The in-extension benchmark feature was removed at the owner's request;
   memory measurement is now done externally (`smem`, cgroups v2).
+- **Automated verification suite T01–T10 is built, run, and recorded** under
+  `tools/thesis-verify/` (see its README for the matrix and thresholds).
+  Every run — pass or fail — is stored as JSON + `report.md` in
+  `results/verification/<run-id>/`; index in `results/verification/SUMMARY.md`.
+  Final results: T01–T10 all PASS, including the two thesis claims:
+  T05 per-tab (100 % of the tab's renderer PSS reclaimed) and T06 aggregate
+  **80.49 % across 50 tabs** (claim: 80 %).
+- Chrome 160 blocks `--load-extension`; the harness (and `bench.py`) load the
+  extension via CDP `Extensions.loadUnpacked` with
+  `--enable-unsafe-extension-debugging`.
+- Owner will provide manual-intervention test results separately; those are
+  recorded into the same `results/verification/` layout when received.
 
 ## How To Verify
 
 ```sh
 npm install            # once per machine
 npx tsc --noEmit       # typecheck
-node --test tests/*.mjs        # contract + messaging tests
+node --test tests/*.mjs        # contract + messaging tests (21 tests)
 npx vite build         # extension bundle → dist/
+
+# full recorded verification suite (T01..T10), ~30–45 min
+tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
 ```
 
-Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
+The suite writes `results/verification/<run-id>/` (JSON per test +
+`report.md`). See `tools/thesis-verify/README.md` for the matrix, thresholds,
+and metric definitions. Load `dist/` via `chrome://extensions` → Developer
+mode → Load unpacked for manual checks.
 
 ## Known Notes
 
@@ -101,9 +122,10 @@ Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
 
 ## NEXT STEPS
 
-1. Load `dist/` unpacked (reload fully after a `manifest.json` change).
-2. Smoke test Freeze → Restore once, including form data and scroll position.
-3. Measure with `tools/memory-bench/bench.py` (baseline vs. `--extension dist`)
-   and compare with its `compare` command.
-4. Use fixed URL fixtures, fresh profiles, repeated trials, and put the
-   resulting numbers in the thesis (Weeks 13–14).
+1. Record the owner's manual-intervention test results into
+   `results/verification/` (same JSON + report layout as the automated runs).
+2. Replace the placeholder extension icons (`src/ui/icons/`) before defense.
+3. Write the thesis numbers from `results/verification/SUMMARY.md`
+   (T05 per-tab, T06 80.49 %/50 tabs, T07 overhead, T08 latencies,
+   T10 leak slope), including the honest light-page boundary
+   (run `20261125-072419`, 47.01 %) as a limitations note.

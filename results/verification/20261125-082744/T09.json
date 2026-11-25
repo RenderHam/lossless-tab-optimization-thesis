@@ -1,0 +1,48 @@
+{
+  "test": "T09",
+  "name": "determinism of capture+compression",
+  "run": "20261125-082744",
+  "started": "2026-11-25T00:27:45.440262+00:00",
+  "finished": "2026-11-25T00:27:48.513689+00:00",
+  "threshold": "3 freezes of the same page: identical rawBytes and identical SHA-256 of decompressed state minus timestamp",
+  "result": "fail",
+  "metrics": {
+    "runs": [
+      {
+        "rawBytes": 20424,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "79d130cbac9c54cd586e87341e631e3ea469dd93a4624c74a8910685f225a2b4"
+      },
+      {
+        "rawBytes": 20424,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "70846319926e0cf634c40ab4c5ef8ec035ef4ac72a84bf7188ff827673b2b4a2"
+      },
+      {
+        "rawBytes": 20424,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "97ac3ac3dc43708c6eed76df9e8b588dea321a1a60b3d899c630b2266b918ad9"
+      }
+    ],
+    "distinct_hashes": 3,
+    "distinct_raw_bytes": 1
+  },
+  "notes": [
+    "determinism violated \u2014 inspect runs"
+  ],
+  "artifacts": [
+    "T09-run1.zst",
+    "T09-run2.zst",
+    "T09-run3.zst",
+    "T09-run1.json",
+    "T09-run2.json",
+    "T09-run3.json"
+  ],
+  "config": {
+    "fixture": "medium.html",
+    "runs": 3
+  }
+}
