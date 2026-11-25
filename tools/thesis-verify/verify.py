@@ -11,7 +11,13 @@ Every run — including failures and aborted runs — is recorded. Nothing is
 deleted.
 
 Requires the venv python (websocket-client):
-  tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests T01,T02
+  Linux/macOS: tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests T01,T02
+  Windows:     tools\\thesis-verify\\.venv\\Scripts\\python.exe tools\\thesis-verify\\verify.py run --tests T01,T02
+
+Works on Linux and Windows. The memory metric is PSS on Linux (via smem)
+and Working Set on Windows (via PowerShell/CIM); each run's env.json records
+which one was used. No external zstd binary is needed — T09 decompresses
+through the extension's own offscreen worker.
 
 See tools/thesis-verify/README.md for the full test matrix and thresholds.
 """
@@ -23,6 +29,7 @@ import base64
 import hashlib
 import json
 import os
+import platform
 import shutil
 import statistics
 import subprocess
@@ -37,12 +44,15 @@ try:
 except ImportError:
     sys.exit(
         "websocket-client is missing. Run:\n"
-        "  python3 -m venv tools/thesis-verify/.venv\n"
-        "  tools/thesis-verify/.venv/bin/pip install websocket-client"
+        "  Linux/macOS: python3 -m venv tools/thesis-verify/.venv && "
+        "tools/thesis-verify/.venv/bin/pip install websocket-client\n"
+        "  Windows:     py -m venv tools\\thesis-verify\\.venv && "
+        "tools\\thesis-verify\\.venv\\Scripts\\pip.exe install websocket-client"
     )
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cdp  # noqa: E402
+import platform_support as ps  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -167,6 +177,9 @@ class FixtureServer:
                 "--bind", "127.0.0.1", "--directory", str(FIXTURES),
             ],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            # Its own group so terminate_process_tree() cannot signal the
+            # harness's group (POSIX killpg) when shutting the server down.
+            **ps.popen_kwargs(),
         )
         import socket
 
@@ -179,16 +192,11 @@ class FixtureServer:
         raise RuntimeError("fixture server did not come up")
 
     def stop(self) -> None:
-        if self.proc and self.proc.poll() is None:
-            self.proc.terminate()
-            try:
-                self.proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.proc.kill()
+        ps.terminate_process_tree(self.proc)
         self.proc = None
 
 
-# --- Memory sampling (reuses bench.py's /proc + smem logic) ------------------
+# --- Memory sampling (platform backends in platform_support.py) --------------
 
 def _load_bench():
     import importlib.util
@@ -199,58 +207,36 @@ def _load_bench():
     return mod
 
 
-def _smem_table(pids: set[int]) -> dict[int, tuple[int, int]]:
-    """One `smem` call for all PIDs -> {pid: (rss_bytes, pss_bytes)}."""
-    if not shutil.which("smem") or not pids:
-        return {}
-    try:
-        out = subprocess.run(
-            ["smem", "-c", "pid rss pss", "-n"],
-            capture_output=True, text=True, timeout=10, check=True,
-        ).stdout.splitlines()
-    except (OSError, subprocess.SubprocessError):
-        return {}
-    table = {}
-    for line in out[1:]:
-        parts = line.split()
-        if len(parts) < 3:
-            continue
-        try:
-            table[int(parts[0])] = (int(parts[1]) * 1024, int(parts[2]) * 1024)
-        except ValueError:
-            continue
-    return {p: table[p] for p in pids if p in table}
-
-
 class Sampler:
-    """Samples the Chrome process tree; sync snapshots or timed captures."""
+    """Samples the Chrome process tree; sync snapshots or timed captures.
 
-    def __init__(self, root_pid: int, bench_mod, interval: float = 0.5):
+    Linux: PSS per process via smem. Windows: Working Set per process via
+    PowerShell/CIM (no PSS equivalent). `memory_metric` records which one.
+    """
+
+    def __init__(self, root_pid: int, bench_mod, interval: float = 0.5,
+                 profile_dir: Path | None = None):
         self.root_pid = root_pid
         self.bench = bench_mod
         self.interval = interval
+        self.profile_dir = profile_dir
+        self.memory_metric = (
+            ps.MEMORY_WORKING_SET if ps.IS_WINDOWS else ps.MEMORY_PSS
+        )
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.samples: list[dict] = []
 
     def snapshot(self) -> dict:
-        pids, all_stats = self.bench.process_tree(self.root_pid)
-        table = _smem_table(pids)
-        if table:
-            rss = sum(v[0] for v in table.values())
-            pss = sum(v[1] for v in table.values())
-            pid_pss = {pid: v[1] for pid, v in table.items()}
-        else:
-            rss, pss = self.bench.memory_for(pids)
-            pid_pss = {}
-        ticks = sum(all_stats[p][1] for p in pids if p in all_stats)
+        sample = ps.sample_memory(self.root_pid, self.bench, self.profile_dir)
         return {
             "t": time.time(),
-            "processes": len(pids),
-            "rss": rss,
-            "pss": pss,
-            "pid_pss": pid_pss,
-            "ticks": ticks,
+            "processes": len(sample["pids"]),
+            "rss": sample["rss"],
+            "pss": sample["pss"],
+            "pid_pss": sample["pid_pss"],
+            "ticks": sum(sample["ticks"].values()),
+            "metric": sample["metric"],
         }
 
     def average(self, n: int = 3, gap: float = 0.4) -> dict:
@@ -474,6 +460,15 @@ class Ext:
             timeout=60,
         )
 
+    def decompress_b64(self, payload_b64: str, timeout: float = 60.0) -> str:
+        """Decompress snapshot bytes with the extension's own zstd worker.
+
+        Sent from the popup page as a runtime message; Chrome delivers it to
+        the offscreen document (which owns the worker). This avoids any
+        external `zstd` CLI and therefore works identically on Windows.
+        """
+        return self.eval(ps.decompress_request_js(payload_b64), timeout=timeout)
+
     def cleanup_snapshots(self) -> int:
         try:
             metas = self.snapshots()
@@ -507,11 +502,7 @@ class Harness:
 
     @staticmethod
     def _detect_chrome() -> str:
-        for name in ("google-chrome-unstable", "google-chrome", "google-chrome-stable", "chromium"):
-            path = shutil.which(name)
-            if path:
-                return path
-        raise SystemExit("No Chrome found on PATH")
+        return ps.find_chrome()
 
     # --- lifecycle ----------------------------------------------------------
 
@@ -532,7 +523,9 @@ class Harness:
         self.session.start()
         assert self.session.extension_id
         self.ext = Ext(self.session)
-        self.sampler = Sampler(self.session.proc.pid, self.bench)
+        self.sampler = Sampler(
+            self.session.proc.pid, self.bench, profile_dir=self.profile_dir
+        )
         self.write_env()
 
     def stop(self) -> None:
@@ -599,12 +592,7 @@ class Harness:
     # --- records ------------------------------------------------------------
 
     def write_env(self) -> None:
-        try:
-            chrome_ver = subprocess.run(
-                [self.chrome_bin, "--version"], capture_output=True, text=True, timeout=10
-            ).stdout.strip()
-        except Exception:
-            chrome_ver = "unknown"
+        chrome_ver = ps.chrome_version(self.session) if self.session else "unknown"
         try:
             git_rev = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
@@ -620,13 +608,15 @@ class Harness:
             "extension_id": self.session.extension_id if self.session else None,
             "extension_dir": str(DIST),
             "python": sys.version.split()[0],
+            "os": platform.system(),
             "machine": {
                 "cpu_count": os.cpu_count(),
-                "mem_total_kb": next(
-                    (int(l.split()[1]) for l in Path("/proc/meminfo").read_text().splitlines()
-                     if l.startswith("MemTotal")), 0,
-                ),
+                "mem_total_kb": ps.machine_memory_kb(),
             },
+            "memory_metric": self.sampler.memory_metric if self.sampler else "unknown",
+            "memory_backend": (
+                "windows-cim-working-set" if ps.IS_WINDOWS else "linux-smem-or-proc"
+            ),
             "thresholds": THRESHOLDS,
         }
         (self.run_dir / "env.json").write_text(json.dumps(env, indent=2))
@@ -1065,13 +1055,15 @@ def t05(ctx: Harness, args) -> None:
                 "p10_saved_pct": round(p10_pct, 2),
                 "mean_tree_saved_pct": round(mean_tree, 2),
                 "renderers_exited": exited_count,
+                "memory_metric": ctx.sampler.memory_metric,
                 "rows": rows,
             },
             threshold=(
                 f"mean >= {THRESHOLDS['T05_per_tab_mean_pct']}% and "
                 f"p10 >= {THRESHOLDS['T05_per_tab_p10_pct']}% (claim: 90%)"
             ),
-            config={"tabs": n, "fixture": "heavy.html", "attribution": "per-renderer PSS via smem"},
+            config={"tabs": n, "fixture": "heavy.html",
+                    "attribution": f"per-renderer {ctx.sampler.memory_metric}"},
             started=started,
             notes=[f"{len(rows) - len(good)} tab(s) unattributed or failed"],
         )
@@ -1170,6 +1162,7 @@ def t06(ctx: Harness, args) -> None:
                 "tab_reclaimed_pct": round(reclaimed_pct, 2),
                 "avg_tab_mib": round(held / n / 2**20, 1) if n else 0,
                 "baseline_after_mib": round(after["pss"] / 2**20, 1),
+                "memory_metric": ctx.sampler.memory_metric,
                 "processes_before": before["processes"],
                 "processes_after": after["processes"],
                 "freeze_total_ms_p95": p95([r["totalMs"] for r in freeze_rows if r.get("totalMs")]),
@@ -1207,6 +1200,9 @@ def t07(ctx: Harness, args) -> None:
 
         common = [
             sys.executable, str(BENCH), "run",
+            # Same browser as the harness, including a custom --chrome path
+            # (important on Windows, where install locations vary).
+            "--chrome", ctx.chrome_bin,
             "--url-file", str(urls_file),
             "--fresh", "--warmup", "15", "--interval", "2", "--samples", "30",
         ]
@@ -1226,8 +1222,12 @@ def t07(ctx: Harness, args) -> None:
 
         base = json.loads(base_out.read_text())
         ext = json.loads(ext_out.read_text())
-        b = base["stats"]["pss_bytes"]["mean"] or 0
-        e = ext["stats"]["pss_bytes"]["mean"] or 0
+        # Windows bench runs report PSS as null; use Working Set there and
+        # label the record so the two operating systems are not compared
+        # as if they measured the same thing.
+        b, mem_metric = ps.sampled_memory_mean(base)
+        e, _ = ps.sampled_memory_mean(ext)
+        b, e = b or 0, e or 0
         ratio = (e / b) if b else None
         result = "pass" if ratio is not None and ratio <= THRESHOLDS["T07_overhead_ratio_max"] else "fail"
         ctx.record(
@@ -1237,14 +1237,20 @@ def t07(ctx: Harness, args) -> None:
                 "extension_pss_mean": e,
                 "ratio": round(ratio, 4) if ratio else None,
                 "delta_bytes": e - b,
+                "memory_metric": mem_metric,
+                "bench_memory_source": base.get("config", {}).get("memory_source"),
                 "baseline_cpu_mean": base["stats"]["cpu_percent"]["mean"],
                 "extension_cpu_mean": ext["stats"]["cpu_percent"]["mean"],
             },
-            threshold=f"extension/baseline PSS ratio <= {THRESHOLDS['T07_overhead_ratio_max']} "
+            threshold=f"extension/baseline {mem_metric} ratio <= {THRESHOLDS['T07_overhead_ratio_max']} "
                      "(extension loaded, no freeze used)",
             config={"bench_tabs": args.bench_tabs, "samples": 30, "interval_s": 2, "warmup_s": 15},
             started=started,
-            notes=["bench.py runs use their own fresh profiles"],
+            notes=[
+                "bench.py runs use their own fresh profiles",
+                "Windows uses Working Set (RSS) because PSS does not exist there"
+                if ps.IS_WINDOWS else "PSS via smem/proc",
+            ],
             artifacts=["T07-baseline.json", "T07-extension.json", "T07-urls.txt"],
         )
     except Exception as exc:
@@ -1376,13 +1382,27 @@ def t09(ctx: Harness, args) -> None:
             comp_path = ctx.run_dir / f"T09-run{i + 1}.zst"
             out_path = ctx.run_dir / f"T09-run{i + 1}.json"
             comp_path.write_bytes(raw)
-            proc = subprocess.run(
-                ["zstd", "-d", "-f", str(comp_path), "-o", str(out_path)],
-                capture_output=True, text=True, timeout=30,
-            )
-            if proc.returncode != 0:
-                raise RuntimeError(f"zstd decompress failed: {proc.stderr.strip()}")
-            state = json.loads(out_path.read_text())
+            # Decompress with the extension's OWN offscreen zstd worker via a
+            # runtime message. No external CLI, no OS-specific paths — and it
+            # exercises exactly the code the restore path uses.
+            decompressed = base64.b64decode(ctx.ext.decompress_b64(b64))
+            out_path.write_bytes(decompressed)
+            state = json.loads(decompressed.decode("utf-8"))
+            # Optional cross-check: if the zstd CLI happens to be installed,
+            # confirm the standalone decoder produces identical bytes.
+            cli_agrees = None
+            if shutil.which("zstd"):
+                try:
+                    cli_out = ctx.run_dir / f"T09-run{i + 1}-cli.json"
+                    proc = subprocess.run(
+                        ["zstd", "-d", "-f", str(comp_path), "-o", str(cli_out)],
+                        capture_output=True, text=True, timeout=30,
+                    )
+                    cli_agrees = (
+                        proc.returncode == 0 and cli_out.read_bytes() == decompressed
+                    )
+                except (OSError, subprocess.SubprocessError):
+                    cli_agrees = None
             raw_states.append(state)
             state = {k: v for k, v in state.items() if k not in EXCLUDED}
             canonical = json.dumps(state, sort_keys=True, separators=(",", ":"))
@@ -1392,6 +1412,7 @@ def t09(ctx: Harness, args) -> None:
                 "compressedBytes": resp.get("compressedBytes"),
                 "chunks_bytes": len(raw),
                 "normalized_sha256": digest,
+                "zstd_cli_agrees": cli_agrees,
             })
             print(f"  T09 run {i + 1}: {digest[:16]}… ({len(raw)} B compressed)")
             ctx.restore_url(url)
@@ -1423,7 +1444,8 @@ def t09(ctx: Harness, args) -> None:
             threshold="3 freezes of the same page: identical rawBytes and identical "
                       "SHA-256 of decompressed state minus runtime-only fields "
                       "(timestamp, tabId, heapSnapshotRef); no other field may vary",
-            config={"fixture": "medium.html", "runs": 3},
+            config={"fixture": "medium.html", "runs": 3,
+                    "decompression": "extension offscreen zstd-wasm via runtime message"},
             started=started,
             notes=[] if result == "pass" else
             [f"determinism violated — unexpected varying fields: {unexpected}"
@@ -1594,9 +1616,10 @@ def write_report(run_dir: Path) -> Path:
 # come from the records themselves).
 CLAIM_EVIDENCE = [
     ("90 % memory reduction per frozen tab", ["T05"],
-     "per-tab renderer PSS reclaimed (tree-level delta recorded as conservative secondary)"),
+     "per-tab renderer PSS (Linux) / Working Set (Windows) reclaimed "
+     "(tree-level delta recorded as conservative secondary)"),
     ("80 % total reduction across 50 open tabs", ["T06"],
-     "whole-tree PSS in steady state"),
+     "whole-tree PSS (Linux) / Working Set (Windows) in steady state"),
     ("Lossless restore", ["T02", "T03", "T04"],
      "byte-exact DOM/forms/scroll, correct restore mode, no duplicated UI"),
     ("Deterministic pipeline (no ML/AI)", ["T09", "T10"],
@@ -1640,8 +1663,16 @@ def write_summary(results_root: Path) -> Path:
             if rec["result"] == "pass":
                 passing[rec["test"]] = (d.name, rec)
 
-    machine = runs[-1][1].get("machine", {}) if runs else {}
-    chrome = runs[-1][1].get("chrome", "?") if runs else "?"
+    # Pick the latest *recorded* run by timestamp, not by directory name:
+    # diagnostic directories (diag-*) sort after numeric run ids.
+    latest_run = max(
+        (r for r in runs if r[2]),
+        key=lambda r: r[1].get("timestamp") or r[0].name,
+        default=None,
+    )
+    latest_env = latest_run[1] if latest_run else {}
+    machine = latest_env.get("machine", {})
+    chrome = latest_env.get("chrome", "?")
 
     def metric_of(item: tuple[str, dict] | None) -> str:
         if not item:
@@ -1672,6 +1703,10 @@ def write_summary(results_root: Path) -> Path:
         f"- Chrome: {chrome}",
         f"- Machine: {machine.get('cpu_count', '?')} CPUs, "
         f"{machine.get('mem_total_kb', 0) // 1024} MiB RAM",
+        f"- Latest run platform: {latest_env.get('os', 'not recorded')} — "
+        f"memory metric: {latest_env.get('memory_metric', 'not recorded')}",
+        "- Linux records PSS; Windows records Working Set (RSS). "
+        "Do not compare numbers across operating systems.",
         f"- Suite docs: `tools/thesis-verify/README.md`",
         "",
         "## Thesis claims vs evidence",
@@ -1700,10 +1735,10 @@ def write_summary(results_root: Path) -> Path:
         "",
         "Runs are never deleted — failures are part of the record.",
         "",
-        "| Run | Tests recorded | Outcomes | Report |",
-        "|---|---|---|---|",
+        "| Run | Platform | Metric | Tests recorded | Outcomes | Report |",
+        "|---|---|---|---|---|---|",
     ]
-    for d, _env, records in runs:
+    for d, env, records in runs:
         if not records:
             continue
         outcomes = ", ".join(
@@ -1711,7 +1746,9 @@ def write_summary(results_root: Path) -> Path:
         )
         tests = ", ".join(r["test"] for r in records)
         lines.append(
-            f"| `{d.name}` | {tests} | {outcomes} | [report.md]({d.name}/report.md) |"
+            f"| `{d.name}` | {env.get('os', '—')} | "
+            f"{env.get('memory_metric', '—')} | {tests} | {outcomes} | "
+            f"[report.md]({d.name}/report.md) |"
         )
 
     lines += [

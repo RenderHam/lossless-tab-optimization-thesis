@@ -1,0 +1,14 @@
+{
+  "test": "T10",
+  "name": "stress: 20 freeze/restore cycles, leak check",
+  "run": "20261125-142656",
+  "started": "2026-11-25T06:38:26.497596+00:00",
+  "finished": "2026-11-25T06:38:35.512951+00:00",
+  "threshold": "",
+  "result": "error",
+  "metrics": {},
+  "notes": [],
+  "artifacts": [],
+  "config": {},
+  "error": "could not open tab: http://x120.lto.test:8123/medium.html"
+}

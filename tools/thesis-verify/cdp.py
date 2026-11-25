@@ -22,6 +22,8 @@ from typing import Any
 
 import websocket
 
+from platform_support import popen_kwargs, terminate_process_tree
+
 
 class CDPError(Exception):
     pass
@@ -134,7 +136,10 @@ class ChromeSession:
         cmd += self.extra_flags
         cmd.append("about:blank")
         self.proc = subprocess.Popen(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **popen_kwargs(),
         )
         deadline = time.time() + timeout
         last_err: Exception | None = None
@@ -165,22 +170,7 @@ class ChromeSession:
     def stop(self) -> None:
         if self.browser:
             self.browser.close()
-        if self.proc and self.proc.poll() is None:
-            import os
-            import signal
-
-            try:
-                os.killpg(os.getpgid(self.proc.pid), signal.SIGTERM)
-            except Exception:
-                self.proc.terminate()
-            try:
-                self.proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                try:
-                    os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
-                except Exception:
-                    self.proc.kill()
-                self.proc.wait(timeout=5)
+        terminate_process_tree(self.proc)
         self.proc = None
 
     # --- targets ------------------------------------------------------------

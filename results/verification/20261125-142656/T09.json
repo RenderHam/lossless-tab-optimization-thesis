@@ -1,0 +1,14 @@
+{
+  "test": "T09",
+  "name": "determinism of capture+compression",
+  "run": "20261125-142656",
+  "started": "2026-11-25T06:38:17.483216+00:00",
+  "finished": "2026-11-25T06:38:26.497238+00:00",
+  "threshold": "",
+  "result": "error",
+  "metrics": {},
+  "notes": [],
+  "artifacts": [],
+  "config": {},
+  "error": "could not open tab: http://x119.lto.test:8123/medium.html"
+}

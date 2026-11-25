@@ -14,19 +14,30 @@ nothing is ever deleted.
 
 ## Prerequisites
 
-| Tool | Why | Install |
-|---|---|---|
-| `python3` + `venv` | harness runtime | preinstalled |
-| `websocket-client` | drives Chrome over CDP | `python3 -m venv tools/thesis-verify/.venv && tools/thesis-verify/.venv/bin/pip install websocket-client` |
-| Google Chrome (160+) | real browser under test | `google-chrome-unstable` (dev channel) |
-| `zstd` | decompresses snapshot artifacts for byte checks | `zstd` package (already present) |
-| `smem` | proportional-set-size (PSS) per process — the memory metric | `smem` package (already present) |
-| `node` + npm | builds the extension (`tsc`, `vite build`) | preinstalled |
-| `jq` (optional) | inspecting JSON records | `jq` package |
+The suite runs on **Linux and Windows**. Everything is Python standard library
+except `websocket-client`; no external `zstd` binary is required.
 
-The harness auto-detects the Chrome binary; override with `--chrome`.
+| Tool | Why | Linux | Windows |
+|---|---|---|---|
+| Python 3.10+ with `venv` | harness runtime | preinstalled | install from python.org (`py -3`) |
+| `websocket-client` | drives Chrome over CDP | `python3 -m venv tools/thesis-verify/.venv && tools/thesis-verify/.venv/bin/pip install websocket-client` | `py -3 -m venv tools\thesis-verify\.venv` then `tools\thesis-verify\.venv\Scripts\pip.exe install websocket-client` |
+| Google Chrome 160+ (or Edge) | real browser under test | `google-chrome-unstable` (dev channel) | install Chrome or Edge; auto-detected |
+| `node` + npm | builds the extension (`tsc`, `vite build`) | preinstalled | install Node 20+ |
+| `smem` | per-process PSS — the Linux memory metric | `smem` package | not used (Working Set via PowerShell/CIM) |
+| `zstd` (optional) | cross-checks T09 bytes against a standalone decoder | optional | optional |
+
+The harness auto-detects the Chrome binary on `PATH` (Linux) or in the usual
+`Program Files` locations plus the `App Paths` registry key (Windows). Override
+with `--chrome`, including absolute Windows paths with spaces:
+
+```powershell
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run `
+  --tests all --chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"
+```
 
 ## Commands
+
+Linux/macOS:
 
 ```sh
 # build the extension first
@@ -46,6 +57,29 @@ tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py report --run 
 tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py summary
 ```
 
+Windows (PowerShell) — the same commands with the venv path changed:
+
+```powershell
+npx tsc --noEmit; npx vite build
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run --tests all
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run --tests T01,T02 --tabs 50 --small-tabs 8 --bench-tabs 10 --cycles 20
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py report --run <run-id>
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py summary
+```
+
+## Development tests (no browser)
+
+The platform layer is unit-tested on both operating systems without launching
+Chrome. Both commands work identically in bash, cmd.exe and PowerShell:
+
+```sh
+npm test                                                  # extension contracts
+python -m unittest discover -s tools/thesis-verify/tests -v  # platform layer
+```
+
+CI (`.github/workflows/verify.yml`) runs `npm test`, `npm run build` and the
+Python tests on `ubuntu-latest` and `windows-latest`.
+
 Options: `--tabs` (T01/T06, default 50), `--small-tabs` (T05/T08, default 8),
 `--bench-tabs` (T07, default 10), `--cycles` (T10, default 20),
 `--keep-profile` (keep the Chrome profile for post-mortem).
@@ -58,9 +92,9 @@ Options: `--tabs` (T01/T06, default 50), `--small-tabs` (T05/T08, default 8),
 | T02 | Restore is byte-exact: HTML, form values, scroll ±2 px | every tab equal |
 | T03 | Overlay mode on populated pages, full rebuild on empty pages, auto-restore on activation | all three correct |
 | T04 | No duplicated UI after restore (element-count ratio) | ≤ 1.10 |
-| T05 | **Per-tab saving** — tab's renderer process PSS reclaimed by freeze | mean ≥ 70 %, p10 ≥ 60 % (claim 90 %) |
-| T06 | **Aggregate saving across 50 tabs** — whole-tree PSS, steady state | ≥ 50 % (claim 80 %) |
-| T07 | Extension idle overhead while merely loaded | extension/baseline PSS ratio ≤ 1.10 |
+| T05 | **Per-tab saving** — tab's renderer PSS (Linux) / Working Set (Windows) reclaimed by freeze | mean ≥ 70 %, p10 ≥ 60 % (claim 90 %) |
+| T06 | **Aggregate saving across 50 tabs** — whole-tree PSS (Linux) / Working Set (Windows), steady state | ≥ 50 % (claim 80 %) |
+| T07 | Extension idle overhead while merely loaded | extension/baseline memory ratio ≤ 1.10 |
 | T08 | Latency: freeze p95, restore p95, hydration batch time | freeze ≤ 2000 ms, restore ≤ 5000 ms, batch ≤ 50 ms |
 | T09 | Determinism: 3 freezes of the same page → identical bytes | 1 distinct SHA-256 (modulo runtime-only fields) |
 | T10 | Stress: 20 freeze/restore cycles, leak check | 0 errors, memory slope ≤ 1 %/cycle |
@@ -70,9 +104,20 @@ each run's `env.json`, so a record always states the bar it was judged against.
 
 ## Metric definitions (read before interpreting numbers)
 
-- **Primary metric is per-process PSS** (proportional set size, from `smem`).
-  T05 attributes memory to the tab's own renderer: freezing the tab kills the
-  renderer, so `tab_reclaimed_pct` = share of that process's PSS that came back.
+- **The metric depends on the operating system, and runs are labelled.**
+  Linux uses **PSS** (proportional set size, from `smem`). Windows has no PSS
+  equivalent, so it uses **Working Set (RSS)** for the Chrome process tree via
+  PowerShell/CIM (`bench.windows_snapshot`). Every `env.json` records `os`,
+  `memory_metric` and `memory_backend`; T05/T06/T07 records repeat
+  `memory_metric`. **Do not compare a Windows number with a Linux number** —
+  Working Set counts shared pages in every process, so it is systematically
+  larger than PSS. Older field names (`pss_before`, `tab_pss_bytes`, …) are
+  kept for compatibility with existing records; on Windows they hold Working
+  Set values, and `memory_metric` is the authoritative label.
+- **Primary metric is per-process PSS** on Linux (proportional set size, from
+  `smem`); on Windows it is per-process Working Set. T05 attributes memory to
+  the tab's own renderer: freezing the tab kills the renderer, so
+  `tab_reclaimed_pct` = share of that process's memory that came back.
   Tree-level delta (`mean_tree_saved_pct`) is recorded as a *conservative
   secondary* metric — it includes Chrome's fixed baseline (browser, GPU,
   network, extension workers ≈ 500 MiB), which does not shrink no matter how
@@ -82,8 +127,8 @@ each run's `env.json`, so a record always states the bar it was judged against.
   for steady state (`min_wait=40 s`, 5 samples within 1 %) and records both the
   steady number (`saved_pct`, the pass/fail metric) and the transient one
   (`transient_saved_pct`).
-- **Per-tab weight caps the tree percentage.** Tree saving = (tab PSS × frozen
-  tabs) ÷ total tree PSS. With light pages the fixed ~500 MiB baseline
+- **Per-tab weight caps the tree percentage.** Tree saving = (tab memory ×
+  frozen tabs) ÷ total tree memory. With light pages the fixed ~500 MiB baseline
   dominates: that boundary is recorded honestly in run `20261125-072419`
   (47.01 %, FAIL) before fixtures carried a realistic heap. Heavy fixtures
   (24 MiB resident JS heap per tab) put each tab at ≈ 44 MiB PSS, and the same
@@ -110,10 +155,18 @@ each run's `env.json`, so a record always states the bar it was judged against.
   restores tabs by URL, not by id.
 - Fixtures are served from `http://127.0.0.1:8123`; distinct
   `*.lto.test` hostnames (via `--host-resolver-rules`) keep each tab in its
-  own renderer process so PSS can be attributed per tab.
+  own renderer process so memory can be attributed per tab.
 - The extension is driven through its own popup page
   (`chrome-extension://<id>/src/ui/popup.html`) over CDP — the same message
   protocol a user triggers.
+- **Windows:** run from PowerShell. Chrome/Edge is found under
+  `Program Files` (or `--chrome`); the browser is killed with
+  `taskkill /T /F`; total RAM comes from `GlobalMemoryStatusEx`; the version
+  string is read over CDP because `chrome.exe --version` prints nothing.
+  T09 decompresses through the extension's own offscreen worker, so no
+  external `zstd` is needed. Use the same Windows machine for before/after
+  comparisons and record the run normally — `env.json` will say
+  `"os": "Windows"` and `"memory_metric": "Working Set (RSS)"`.
 
 ## Artifacts per run (`results/verification/<run-id>/`)
 

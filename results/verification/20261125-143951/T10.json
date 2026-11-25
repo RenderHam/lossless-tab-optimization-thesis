@@ -1,0 +1,45 @@
+{
+  "test": "T10",
+  "name": "stress: 20 freeze/restore cycles, leak check",
+  "run": "20261125-143951",
+  "started": "2026-11-25T06:43:29.192729+00:00",
+  "finished": "2026-11-25T06:44:26.670029+00:00",
+  "threshold": "0 errors, all 20 cycles, slope <= 1.0%/cycle",
+  "result": "pass",
+  "metrics": {
+    "cycles_planned": 20,
+    "cycles_completed": 20,
+    "pss_series_bytes": [
+      531310592,
+      531953322,
+      531716778,
+      529809408,
+      530994517,
+      531015680,
+      531810304,
+      531971072,
+      530083840,
+      531377834,
+      531666602,
+      530532010,
+      531355989,
+      532067328,
+      532846933,
+      533244586,
+      530908842,
+      531935232,
+      532876629,
+      532539392
+    ],
+    "slope_pct_per_cycle": 0.0139,
+    "first5_mean": 531156923.4,
+    "last5_mean": 532300936.2,
+    "errors": []
+  },
+  "notes": [],
+  "artifacts": [],
+  "config": {
+    "cycles": 20,
+    "fixture": "medium.html"
+  }
+}

@@ -60,13 +60,23 @@ npx vite build   # the suite tests dist/
 tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
 ```
 
-Headline results (see SUMMARY.md for runs and thresholds): freeze success
-50/50, byte-exact restore, **80.49 % aggregate memory saving across 50 tabs**
-(claim: 80 %), 100 % of a frozen tab's renderer PSS reclaimed (claim: 90 %
-per tab; the tree-level figure, which includes Chrome's fixed ~500 MiB
-baseline, is recorded as a conservative secondary metric), idle overhead
-ratio 0.99, freeze p95 18 ms / restore p95 152 ms, identical capture bytes
-across repeated freezes, and no memory slope over 20 cycles.
+The suite runs on Linux and Windows (PowerShell: use
+`tools\thesis-verify\.venv\Scripts\python.exe`). Linux measures PSS, Windows
+measures Working Set (RSS); every run records which metric it used, and the two
+are not directly comparable. Platform-layer unit tests need no browser:
+
+```sh
+npm test
+python -m unittest discover -s tools/thesis-verify/tests -v
+```
+
+Headline results (Linux PSS run; see SUMMARY.md for runs and thresholds):
+freeze success 50/50, byte-exact restore, **80.49 % aggregate memory saving
+across 50 tabs** (claim: 80 %), 100 % of a frozen tab's renderer PSS reclaimed
+(claim: 90 % per tab; the tree-level figure, which includes Chrome's fixed
+~500 MiB baseline, is recorded as a conservative secondary metric), idle
+overhead ratio 0.99, freeze p95 18 ms / restore p95 152 ms, identical capture
+bytes across repeated freezes, and no memory slope over 20 cycles.
 
 ## Project Structure
 
@@ -87,13 +97,13 @@ public/
 tests/           contract and messaging tests
 tools/
   memory-bench/  external CPU/memory/GPU comparison tool
-  thesis-verify/ recorded verification suite (T01–T10)
+  thesis-verify/ recorded verification suite (T01–T10, Linux + Windows)
 PHASE.md         continuity log (verified state, known issues, next steps)
 ```
 
 ## Memory / CPU / GPU Measurement
 
-Use the standalone Linux tool in [`tools/memory-bench/`](tools/memory-bench/README.md).
+Use the standalone Linux/Windows tool in [`tools/memory-bench/`](tools/memory-bench/README.md).
 It launches two identical browsing sessions (plain Chrome vs. Chrome with the
 unpacked extension), samples RSS/PSS memory, CPU, and GPU usage of the entire
 browser process tree, and writes a comparison report.
@@ -108,8 +118,11 @@ python3 tools/memory-bench/bench.py compare \
   --out tools/memory-bench/results/comparison.md
 ```
 
-For whole-browser cgroup totals you can still use `systemd-run --user --scope`
-with `systemd-cgtop`. The extension itself does not collect metrics.
+On Windows use `python` (or `py -3`) instead of `python3`; the tool selects
+the PowerShell/CIM backend automatically, where memory is Working Set (RSS)
+because Windows has no PSS. For whole-browser cgroup totals on Linux you can
+still use `systemd-run --user --scope` with `systemd-cgtop`. The extension
+itself does not collect metrics.
 
 ## 14-Week Development Roadmap
 

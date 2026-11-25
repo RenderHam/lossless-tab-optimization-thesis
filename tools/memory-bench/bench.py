@@ -268,9 +268,11 @@ def gpu_sample():
 
 def detect_chrome(explicit: str | None) -> str:
     if explicit:
-        if not shutil.which(explicit):
-            raise SystemExit(f"Chrome binary not found: {explicit}")
-        return explicit
+        # On Windows an absolute path such as C:\Program Files\...\chrome.exe
+        # is normal; shutil.which() alone can miss paths with spaces.
+        if os.path.isfile(explicit) or shutil.which(explicit):
+            return explicit
+        raise SystemExit(f"Chrome binary not found: {explicit}")
     for name in CHROME_CANDIDATES:
         if shutil.which(name):
             return shutil.which(name)

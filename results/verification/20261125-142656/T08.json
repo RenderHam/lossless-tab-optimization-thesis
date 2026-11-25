@@ -1,0 +1,17 @@
+{
+  "test": "T08",
+  "name": "freeze/restore latency and spikes",
+  "run": "20261125-142656",
+  "started": "2026-11-25T06:38:08.468120+00:00",
+  "finished": "2026-11-25T06:38:17.482798+00:00",
+  "threshold": "",
+  "result": "error",
+  "metrics": {},
+  "notes": [],
+  "artifacts": [],
+  "config": {
+    "tabs": 8,
+    "fixture": "medium.html"
+  },
+  "error": "could not open tab: http://x118.lto.test:8123/light.html"
+}

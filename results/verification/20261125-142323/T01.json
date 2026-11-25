@@ -1,0 +1,19 @@
+{
+  "test": "T01",
+  "name": "freeze success rate",
+  "run": "20261125-142323",
+  "started": "2026-11-25T06:23:27.107640+00:00",
+  "finished": "2026-11-25T06:23:52.591693+00:00",
+  "threshold": "",
+  "result": "error",
+  "metrics": {
+    "rows": []
+  },
+  "notes": [],
+  "artifacts": [],
+  "config": {
+    "tabs": 50,
+    "fixture": "light.html"
+  },
+  "error": "Connection to remote host was lost."
+}

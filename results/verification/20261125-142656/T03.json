@@ -1,0 +1,36 @@
+{
+  "test": "T03",
+  "name": "restore mode correctness (+ auto-restore)",
+  "run": "20261125-142656",
+  "started": "2026-11-25T06:28:39.538243+00:00",
+  "finished": "2026-11-25T06:28:41.663620+00:00",
+  "threshold": "form page => overlay; empty page => full; activation auto-restores typed value",
+  "result": "pass",
+  "metrics": {
+    "modes": {
+      "http://x053.lto.test:8123/form.html": {
+        "ok": true,
+        "mode": "overlay",
+        "totalNodes": 0,
+        "formApplied": 11,
+        "error": null
+      },
+      "http://x054.lto.test:8123/empty.html": {
+        "ok": true,
+        "mode": "full",
+        "totalNodes": 5,
+        "formApplied": 0,
+        "error": null
+      }
+    },
+    "auto_restore_ok": true
+  },
+  "notes": [],
+  "artifacts": [],
+  "config": {
+    "fixture": [
+      "form.html",
+      "empty.html"
+    ]
+  }
+}

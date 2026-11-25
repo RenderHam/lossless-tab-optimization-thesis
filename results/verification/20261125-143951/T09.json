@@ -1,0 +1,60 @@
+{
+  "test": "T09",
+  "name": "determinism of capture+compression",
+  "run": "20261125-143951",
+  "started": "2026-11-25T06:43:26.373186+00:00",
+  "finished": "2026-11-25T06:43:29.186194+00:00",
+  "threshold": "3 freezes of the same page: identical rawBytes and identical SHA-256 of decompressed state minus runtime-only fields (timestamp, tabId, heapSnapshotRef); no other field may vary",
+  "result": "pass",
+  "metrics": {
+    "runs": [
+      {
+        "rawBytes": 20426,
+        "compressedBytes": 2593,
+        "chunks_bytes": 2593,
+        "normalized_sha256": "a28530c2b61210b24231d3c8547f8d225e0364265783be43b42d4833de398040",
+        "zstd_cli_agrees": true
+      },
+      {
+        "rawBytes": 20426,
+        "compressedBytes": 2592,
+        "chunks_bytes": 2592,
+        "normalized_sha256": "a28530c2b61210b24231d3c8547f8d225e0364265783be43b42d4833de398040",
+        "zstd_cli_agrees": true
+      },
+      {
+        "rawBytes": 20426,
+        "compressedBytes": 2592,
+        "chunks_bytes": 2592,
+        "normalized_sha256": "a28530c2b61210b24231d3c8547f8d225e0364265783be43b42d4833de398040",
+        "zstd_cli_agrees": true
+      }
+    ],
+    "distinct_hashes": 1,
+    "distinct_raw_bytes": 1,
+    "excluded_fields": [
+      "timestamp",
+      "tabId",
+      "heapSnapshotRef"
+    ],
+    "varying_fields": [
+      "heapSnapshotRef",
+      "tabId",
+      "timestamp"
+    ]
+  },
+  "notes": [],
+  "artifacts": [
+    "T09-run1.zst",
+    "T09-run2.zst",
+    "T09-run3.zst",
+    "T09-run1.json",
+    "T09-run2.json",
+    "T09-run3.json"
+  ],
+  "config": {
+    "fixture": "medium.html",
+    "runs": 3,
+    "decompression": "extension offscreen zstd-wasm via runtime message"
+  }
+}

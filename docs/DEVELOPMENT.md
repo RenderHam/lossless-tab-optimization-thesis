@@ -14,8 +14,10 @@ continue the thesis work.
 | npm | 10 or newer |
 | Chrome / Chromium | 116+ (Manifest V3) |
 
-No Python, native compiler, or Emscripten toolchain is needed. The zstd Wasm
-binary is vendored in `public/zstd/`.
+Building and loading the extension needs no Python, native compiler, or
+Emscripten toolchain. The zstd Wasm binary is vendored in `public/zstd/`.
+The verification suite (section 11) additionally needs Python 3.10+ and runs on
+both Linux and Windows.
 
 ---
 
@@ -38,7 +40,7 @@ directly in browser code.
 | `npm run dev` | Vite dev server (useful for popup/UI iteration) |
 | `npm run build` | `tsc --noEmit` then `vite build` → `dist/` |
 | `npm run typecheck` | TypeScript only |
-| `npm test` | Runs `tests/*.test.mjs` with `node --test` |
+| `npm test` | Runs every `*.test.mjs` with `node --test` (no shell glob, so it works in cmd.exe/PowerShell too) |
 
 **Always use `npm run build` before loading the extension.** A successful run
 prints a clean Vite asset list; `dist/` is a build artifact and is gitignored.
@@ -213,6 +215,7 @@ held in memory only during freeze/restore.
 ```sh
 npm test                       # contract tests (Node test runner)
 npx tsc --noEmit               # typecheck
+python -m unittest discover -s tools/thesis-verify/tests -v  # platform layer
 
 # full browser suite (recorded; see section 11)
 tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
@@ -220,8 +223,14 @@ tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests a
 
 Tests are source-contract checks plus real VM simulations of `offscreen.js`.
 They verify constants, batching math, base64 round-trip, and the absence of
-ML/probabilistic code. The recorded suite in section 11 drives a real Chrome
-end to end; for quick manual checks, load `dist/` and try Freeze/Restore.
+ML/probabilistic code. The Python tests exercise the Linux and Windows branches
+of `tools/thesis-verify/platform_support.py` with fakes — no browser launch.
+The recorded suite in section 11 drives a real Chrome end to end; for quick
+manual checks, load `dist/` and try Freeze/Restore.
+
+All three commands work unchanged in PowerShell; on Windows use
+`python` (or the venv's `tools\thesis-verify\.venv\Scripts\python.exe`). CI runs
+them on `ubuntu-latest` and `windows-latest` (`.github/workflows/verify.yml`).
 
 ---
 
@@ -280,6 +289,14 @@ tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests a
 tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py report --run <run-id>
 ```
 
+On Windows (PowerShell) the same commands use the venv script path:
+
+```powershell
+npx vite build
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run --tests all
+tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py report --run <run-id>
+```
+
 Each run (pass **or fail**) is stored under `results/verification/<run-id>/`
 as one JSON record per test plus an aggregated `report.md`; an index of all
 runs is `results/verification/SUMMARY.md`. Nothing is ever deleted.
@@ -293,9 +310,21 @@ Suite-specific environment facts:
   tracks tabs by URL.
 - Fixtures run on `127.0.0.1:8123` with distinct `*.lto.test` hostnames
   (`--host-resolver-rules`) so every tab gets its own renderer process and
-  PSS can be attributed per tab.
+  memory can be attributed per tab.
 - The venv (`tools/thesis-verify/.venv/`) holds only `websocket-client`;
   it and the Chrome profiles used by the suite are gitignored.
+- **Windows support lives in `tools/thesis-verify/platform_support.py`:**
+  Chrome discovery (PATH, `Program Files`, `App Paths` registry), total RAM
+  (`GlobalMemoryStatusEx`), process-tree launch/kill
+  (`CREATE_NEW_PROCESS_GROUP` + `taskkill /T /F`), Working Set sampling through
+  `bench.windows_snapshot`, and the T09 decompression message. T09 no longer
+  needs an external `zstd` binary on either OS.
+- **Linux and Windows memory numbers are not comparable.** Linux records PSS;
+  Windows records Working Set (RSS). `env.json` and the T05/T06/T07 records
+  carry `memory_metric`, and `SUMMARY.md` prints the platform for each run.
+- The platform layer is unit-tested with fakes on both operating systems:
+  `python -m unittest discover -s tools/thesis-verify/tests -v`. CI runs these
+  plus `npm test` and `npm run build` on Ubuntu and Windows.
 
 ---
 

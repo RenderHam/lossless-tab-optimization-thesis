@@ -1,0 +1,44 @@
+{
+  "test": "T04",
+  "name": "no duplicated UI after restore",
+  "run": "20261125-142656",
+  "started": "2026-11-25T06:28:41.695141+00:00",
+  "finished": "2026-11-25T06:31:45.395052+00:00",
+  "threshold": "max element-count ratio <= 1.1",
+  "result": "pass",
+  "metrics": {
+    "per_tab": {
+      "http://x055.lto.test:8123/form.html": {
+        "elements_before": 40,
+        "elements_after": 40,
+        "ratio": 1.0,
+        "html_equal": true,
+        "diff": ""
+      },
+      "http://x056.lto.test:8123/dynamic.html": {
+        "elements_before": 205,
+        "elements_after": 205,
+        "ratio": 1.0,
+        "html_equal": true,
+        "diff": ""
+      },
+      "http://x057.lto.test:8123/heavy.html": {
+        "elements_before": 2492,
+        "elements_after": 2492,
+        "ratio": 1.0,
+        "html_equal": true,
+        "diff": ""
+      }
+    },
+    "max_ratio": 1.0
+  },
+  "notes": [],
+  "artifacts": [],
+  "config": {
+    "fixture": [
+      "form.html",
+      "dynamic.html",
+      "heavy.html"
+    ]
+  }
+}
