@@ -157,17 +157,86 @@ export interface FormRestoreStats {
   missing: string[];
 }
 
+/**
+ * Recover BFS node ids on the *live* DOM by replaying capture's traversal
+ * membership rules (whitespace text and comments dropped, skip-tags and the
+ * inline-text fast-path not descended into) and zipping the result against
+ * `state.domTree`. Returns id -> element, or null when the reloaded DOM no
+ * longer structurally matches the snapshot (dynamic pages) — callers then
+ * fall back to id/name/index keys.
+ *
+ * This is what makes node-id matching work in overlay mode, where no
+ * `data-lto-id` attributes exist because the DOM was never rebuilt.
+ */
+export function buildLiveIdMap(
+  state: SerializedTabState,
+  doc: Document = document,
+): Map<number, Element> | null {
+  const root = doc.documentElement;
+  if (!root || !state.domTree.length) return null;
+  const SKIP = new Set(["SCRIPT", "IFRAME", "OBJECT", "EMBED", "CANVAS"]);
+  const live: Node[] = [];
+  const queue: Node[] = [root];
+  while (queue.length > 0) {
+    const node = queue.shift() as Node;
+    const type = node.nodeType;
+    if (type === 8) continue; // comment — dropped at capture
+    if (type === 3) {
+      // Whitespace-only text is dropped at capture (ids stay dense).
+      if ((node.textContent ?? "").trim().length === 0) continue;
+      live.push(node);
+      continue;
+    }
+    if (type === 1) {
+      const el = node as Element;
+      live.push(el);
+      const tag = el.tagName.toUpperCase();
+      if (SKIP.has(tag)) continue; // placeholder only — no descent
+      // Inline-text fast path: single text child is stored on the element,
+      // so the text node itself never enters the captured array.
+      if (el.childNodes.length === 1 && el.firstChild?.nodeType === 3) continue;
+      for (const child of el.childNodes) queue.push(child);
+      continue;
+    }
+    // Other node types (doctype, PI): dropped at capture.
+  }
+
+  const tree = state.domTree;
+  if (live.length !== tree.length) return null;
+  const idxOf = new Map<Node, number>();
+  for (let i = 0; i < live.length; i++) idxOf.set(live[i] as Node, i);
+
+  const out = new Map<number, Element>();
+  for (let i = 0; i < tree.length; i++) {
+    const desc = tree[i] as FlatNodeDescriptor;
+    const node = live[i] as Node;
+    const tag = node.nodeType === 1 ? (node as Element).tagName.toUpperCase() : "#text";
+    if (desc.tagName !== tag) return null;
+    // Parent link check: same parent node at the same array position.
+    const parent = node.parentNode;
+    const pi = parent && parent !== doc ? idxOf.get(parent) : undefined;
+    const expectedParentId = pi === undefined ? -1 : (tree[pi] as FlatNodeDescriptor).parentId;
+    if (desc.parentId !== expectedParentId) return null;
+    if (node.nodeType === 1) out.set(desc.id, node as Element);
+  }
+  return out;
+}
+
 /** Re-apply captured form values, preferring stable BFS node identity. */
 export function restoreFormInputs(state: SerializedTabState, doc: Document = document): FormRestoreStats {
   const stats: FormRestoreStats = { applied: 0, missing: [] };
   const handled = new Set<string>();
 
   // 1. BFS node id is the authoritative match: survives index shifts and
-  //    dynamic elements injected by the page after reload.
+  //    dynamic elements injected by the page after reload. Full-hydration
+  //    DOMs carry `data-lto-id`; overlay DOMs get their ids re-derived from
+  //    the captured tree via buildLiveIdMap.
   if (state.formInputNodeIds) {
+    const byBfsId = buildLiveIdMap(state, doc);
     for (const [key, nodeId] of Object.entries(state.formInputNodeIds)) {
       if (!(key in state.formInputs) || nodeId < 0) continue;
-      const el = doc.querySelector(`[data-lto-id="${nodeId}"]`);
+      let el = doc.querySelector(`[data-lto-id="${nodeId}"]`);
+      if (!el && byBfsId) el = byBfsId.get(nodeId) ?? null;
       if (el && applyFormValue(el, state.formInputs[key])) {
         stats.applied++;
         handled.add(key);
@@ -232,7 +301,18 @@ function formKeysFor(el: Element, index: number): string[] {
   const id = el.getAttribute("id");
   const name = el.getAttribute("name");
   if (id) keys.push(`#${id}`);
-  if (name) keys.push(`${tag}[name=${name}]`);
+  if (name) {
+    const base = `${tag}[name=${name}]`;
+    keys.push(base);
+    // Toggle groups are keyed with their value (see getFormKey in content.ts).
+    if (tag === "input") {
+      const type = (el as HTMLInputElement).type;
+      if (type === "radio" || type === "checkbox") {
+        const v = el.getAttribute("value");
+        keys.push(`${base}|v=${v ?? `#${index}`}`);
+      }
+    }
+  }
   keys.push(`${tag}#${index}`);
   return keys;
 }

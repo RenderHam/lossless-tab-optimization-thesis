@@ -85,6 +85,13 @@ describe("deterministic contracts", () => {
     assert.match(bgSrc, /m\.url === current\.url/);
     assert.match(bgSrc, /no snapshot for tab/);
   });
+  it("auto-restore matches by URL because discard replaces the tab id", () => {
+    // Chrome assigns a new tab id on discard, so the id-keyed snapshot miss
+    // must fall back to a URL match before deciding a tab was never frozen.
+    assert.match(bgSrc, /export async function isFrozen\(tab: chrome\.tabs\.Tab\)/);
+    assert.match(bgSrc, /candidates\.some\(\(m\) => m\.url === tab\.url\)/);
+    assert.match(bgSrc, /if \(!\(await isFrozen\(tab\)\)\) return;/);
+  });
   it("background reloads discarded tabs, waits for readiness, then pushes state", () => {
     assert.match(bgSrc, /chrome\.tabs\.reload\(tabId\)/);
     assert.match(bgSrc, /waitForTabComplete\(tabId\)/);

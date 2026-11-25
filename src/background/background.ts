@@ -242,6 +242,8 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   const state = JSON.parse(decodeUtf8(raw)) as SerializedTabState;
 
   // 2. A discarded tab has no renderer — reload it so the content script runs.
+  //    An activated tab may already be mid-load (discarded flipped to false
+  //    before this handler ran), so always wait for `complete` either way.
   const tab = await findTab(tabId);
   if (tab.discarded) {
     try {
@@ -249,8 +251,8 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
     } catch (err) {
       throw new Error(`reload failed for tab ${tabId}: ${String(err)}`);
     }
-    await waitForTabComplete(tabId);
   }
+  await waitForTabComplete(tabId);
   await waitForContentScript(tabId);
 
   // 3. Push the state to the content script, which hydrates it in batches.
@@ -273,9 +275,19 @@ export async function restoreTab(tabId: number): Promise<RestoreOutcome> {
   return { state, hydration: res.stats ?? null, decompressMs, totalMs: performance.now() - started };
 }
 
-export async function isFrozen(tabId: number): Promise<boolean> {
-  const meta = await readMeta(tabId).catch(() => undefined);
-  return meta !== undefined;
+/**
+ * True when we hold a snapshot for this tab. Chrome replaces the tab id when
+ * a tab is discarded, so a direct id miss falls back to a URL match — the
+ * same rule restoreTab already uses. (Verified: discard changed
+ * 469897108 → 469897111 on Chrome 160.)
+ */
+export async function isFrozen(tab: chrome.tabs.Tab): Promise<boolean> {
+  if (tab.id !== undefined) {
+    const direct = await readMeta(tab.id).catch(() => undefined);
+    if (direct) return true;
+  }
+  const candidates = await listSnapshots().catch(() => []);
+  return candidates.some((m) => m.url === tab.url);
 }
 
 // --- Inactivity sweep (explicit rule, no prediction) --------------------------
@@ -302,14 +314,28 @@ async function sweepInactiveTabs(): Promise<void> {
 const restoring = new Set<number>();
 
 async function autoRestoreOnActivation(tabId: number): Promise<void> {
-  if (restoring.has(tabId)) return;
+  if (restoring.has(tabId)) {
+    console.info(`[lto] auto-restore skip ${tabId}: already in progress`);
+    return;
+  }
   const tab = await findTab(tabId).catch(() => null);
-  if (!tab?.discarded) return;
-  if (!(await isFrozen(tabId))) return; // only tabs we froze ourselves
-
+  if (
+    !tab?.url ||
+    tab.url.startsWith("chrome://") ||
+    tab.url.startsWith("chrome-extension://") ||
+    tab.url.startsWith("about:")
+  ) {
+    return; // browser UI — never ours
+  }
+  // Deliberately NOT gated on tab.discarded: Chrome flips discarded=false as
+  // soon as it starts loading an activated tab, which always races this
+  // handler. Whether a reload is still needed is decided inside restoreTab.
+  if (!(await isFrozen(tab))) return; // only tabs we froze ourselves (URL-aware)
+  console.info(`[lto] auto-restore start ${tabId}`);
   restoring.add(tabId);
   try {
     await restoreTab(tabId);
+    console.info(`[lto] auto-restore done ${tabId}`);
   } catch (err) {
     console.warn(`[lto] auto-restore failed for tab ${tabId}:`, err);
   } finally {

@@ -44,7 +44,19 @@ function getFormKey(el: Element, index: number): string {
   const id = el.getAttribute("id");
   if (id) return `#${id}`;
   const name = el.getAttribute("name");
-  if (name) return `${el.tagName.toLowerCase()}[name=${name}]`;
+  if (name) {
+    const base = `${el.tagName.toLowerCase()}[name=${name}]`;
+    // Same-name toggles (radio groups, checkbox lists) would collide on the
+    // name alone and lose one control's value — distinguish by value attr.
+    if (el.tagName.toUpperCase() === "INPUT") {
+      const type = (el as HTMLInputElement).type;
+      if (type === "radio" || type === "checkbox") {
+        const v = el.getAttribute("value");
+        return `${base}|v=${v ?? `#${index}`}`;
+      }
+    }
+    return base;
+  }
   return `${el.tagName.toLowerCase()}#${index}`;
 }
 
