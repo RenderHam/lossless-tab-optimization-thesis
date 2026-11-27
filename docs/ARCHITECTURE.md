@@ -424,22 +424,23 @@ hop.
 
 ## Verification
 
-- **`tests/`** (`node --test`, 22 tests) — source contracts: constants in
+- **`tests/`** (`bun test`, 22 tests) — source contracts: constants in
   sync, batching math, base64 round-trip through `offscreen.js` in a Node
   VM, **absence of ML/probabilistic code**.
 - **`tools/thesis-verify/`** — the recorded T01–T10 suite driving real
   Chrome over CDP; every run (pass or fail) stored under
   `results/verification/<run-id>/` and indexed in
-  `results/verification/SUMMARY.md`. Runs on Linux and Windows; the
-  OS-specific parts live in `platform_support.py`, and each run records its
-  `memory_metric` (PSS on Linux, Working Set on Windows — not comparable).
-  See [`tools/thesis-verify/README.md`](../tools/thesis-verify/README.md).
-- **`tools/thesis-verify/tests/`** — Python unit tests for the platform layer
-  (both OS branches, fakes only, no browser).
-- **`tools/memory-bench/bench.py`** — external baseline-vs-extension A/B
-  comparison tool (Linux smem/proc, Windows PowerShell/CIM).
-- **`.github/workflows/verify.yml`** — CI on Ubuntu and Windows: Node tests,
-  build, Python syntax check, platform unit tests.
+  `results/verification/SUMMARY.md`. Written in TypeScript/Bun and runs on
+  Linux and Windows; OS-specific parts live in `platform_support.ts`, and
+  each run records its `memory_metric` (PSS on Linux, Working Set on Windows
+  — not comparable). See
+  [`tools/thesis-verify/README.md`](../tools/thesis-verify/README.md).
+- **`tools/thesis-verify/tests/`** — Bun unit tests for the platform layer
+  (both OS branches, injected fakes, no browser).
+- **`scripts/`** — `bootstrap.sh` / `.ps1` / `.cmd` install Bun after
+  confirmation and delegate every task to `cli.ts`.
+- **`.github/workflows/verify.yml`** — CI on Ubuntu and Windows with
+  `oven-sh/setup-bun@v2`: Bun tests, typecheck and build.
 
 ## Related docs
 

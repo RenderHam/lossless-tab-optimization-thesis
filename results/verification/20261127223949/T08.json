@@ -1,0 +1,243 @@
+{
+  "test": "T08",
+  "name": "freeze/restore latency and spikes",
+  "run": "20261127223949",
+  "started": "2026-11-27T22:47:41.782Z",
+  "finished": "2026-11-27T22:48:00.112Z",
+  "threshold": "freeze p95 <= 2000ms; restore p95 <= 5000ms; maxBatchMs <= 50ms",
+  "result": "pass",
+  "metrics": {
+    "freeze_total_ms_p95": 20.4000000001397,
+    "restore_total_ms_p95": 148.89999999990687,
+    "max_batch_ms": 0,
+    "freeze_peak_cpu_pct": null,
+    "restore_peak_cpu_pct": null,
+    "rows": [
+      {
+        "phase": "freeze",
+        "url": "http://x119.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 6.199999999953434,
+          "compressMs": 3.199999999953434,
+          "storeMs": 1.1000000000931323,
+          "totalMs": 19.5
+        },
+        "wall_ms": 24,
+        "peak_pss": 669345792,
+        "peak_cpu_pct": null,
+        "baseline_pss": 659674112
+      },
+      {
+        "phase": "restore",
+        "url": "http://x119.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 147.5,
+        "wall_ms": 151,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 659627008,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x120.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 6.599999999860302,
+          "compressMs": 2.800000000046566,
+          "storeMs": 0.9000000001396984,
+          "totalMs": 20.4000000001397
+        },
+        "wall_ms": 25,
+        "peak_pss": 673747968,
+        "peak_cpu_pct": null,
+        "baseline_pss": 663638016
+      },
+      {
+        "phase": "restore",
+        "url": "http://x120.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 146.80000000004657,
+        "wall_ms": 150,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 663638016,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x121.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 6.199999999953434,
+          "compressMs": 2.800000000046566,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 19.200000000186265
+        },
+        "wall_ms": 23,
+        "peak_pss": 676331520,
+        "peak_cpu_pct": null,
+        "baseline_pss": 666001408
+      },
+      {
+        "phase": "restore",
+        "url": "http://x121.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 147.69999999995343,
+        "wall_ms": 151,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 666001408,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x122.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 5.900000000139698,
+          "compressMs": 2.800000000046566,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 19.300000000046566
+        },
+        "wall_ms": 24,
+        "peak_pss": 678837248,
+        "peak_cpu_pct": null,
+        "baseline_pss": 667265024
+      },
+      {
+        "phase": "restore",
+        "url": "http://x122.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 147,
+        "wall_ms": 150,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 667158528,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x123.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 5.800000000046566,
+          "compressMs": 2.6000000000931323,
+          "storeMs": 1.1999999999534339,
+          "totalMs": 18.300000000046566
+        },
+        "wall_ms": 22,
+        "peak_pss": 680731648,
+        "peak_cpu_pct": null,
+        "baseline_pss": 668560384
+      },
+      {
+        "phase": "restore",
+        "url": "http://x123.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 148.89999999990687,
+        "wall_ms": 151,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 668564480,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x124.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 5.600000000093132,
+          "compressMs": 3.5,
+          "storeMs": 1.5,
+          "totalMs": 18.899999999906868
+        },
+        "wall_ms": 23,
+        "peak_pss": 682222592,
+        "peak_cpu_pct": null,
+        "baseline_pss": 672578560
+      },
+      {
+        "phase": "restore",
+        "url": "http://x124.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 147.79999999981374,
+        "wall_ms": 150,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 672582656,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x125.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 6,
+          "compressMs": 3.5,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 18.600000000093132
+        },
+        "wall_ms": 23,
+        "peak_pss": 685326336,
+        "peak_cpu_pct": null,
+        "baseline_pss": 675291136
+      },
+      {
+        "phase": "restore",
+        "url": "http://x125.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 147.69999999995343,
+        "wall_ms": 151,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 675198976,
+        "peak_cpu_pct": null
+      },
+      {
+        "phase": "freeze",
+        "url": "http://x126.lto.test:8123/medium.html",
+        "ok": true,
+        "timings": {
+          "captureMs": 5.800000000046566,
+          "compressMs": 2.5,
+          "storeMs": 1,
+          "totalMs": 18.600000000093132
+        },
+        "wall_ms": 22,
+        "peak_pss": 688720896,
+        "peak_cpu_pct": null,
+        "baseline_pss": 677488640
+      },
+      {
+        "phase": "restore",
+        "url": "http://x126.lto.test:8123/medium.html",
+        "ok": true,
+        "totalMs": 146.80000000004657,
+        "wall_ms": 150,
+        "mode": "overlay",
+        "maxBatchMs": 0,
+        "formApplied": 4,
+        "peak_pss": 677496832,
+        "peak_cpu_pct": null
+      }
+    ]
+  },
+  "notes": [
+    "peak CPU/PSS recorded as spike evidence (no thesis threshold)"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 8,
+    "fixture": "medium.html",
+    "sampler_interval_s": 0.5
+  }
+}

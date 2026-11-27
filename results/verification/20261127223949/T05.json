@@ -1,0 +1,197 @@
+{
+  "test": "T05",
+  "name": "per-tab memory saving",
+  "run": "20261127223949",
+  "started": "2026-11-27T22:44:37.070Z",
+  "finished": "2026-11-27T22:45:36.665Z",
+  "threshold": "mean >= 70% and p10 >= 60% (claim: 90%)",
+  "result": "pass",
+  "metrics": {
+    "tabs_attempted": 8,
+    "tabs_attributed": 8,
+    "mean_saved_pct": 100,
+    "p10_saved_pct": 100,
+    "mean_tree_saved_pct": 67.77,
+    "renderers_exited": 8,
+    "memory_metric": "PSS",
+    "rows": [
+      {
+        "url": "http://x059.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21822,
+        "renderer_exited": true,
+        "tab_pss_bytes": 59931648,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 969847193,
+        "tree_pss_after": 926085120,
+        "tree_saved_bytes": 43762073,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 73.02,
+        "wall_ms": 3272,
+        "timings": {
+          "captureMs": 28.699999999953434,
+          "compressMs": 20.399999999906868,
+          "storeMs": 1.1000000000931323,
+          "totalMs": 59.800000000046566
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x060.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21833,
+        "renderer_exited": true,
+        "tab_pss_bytes": 60873728,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 925743308,
+        "tree_pss_after": 884075520,
+        "tree_saved_bytes": 41667788,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 68.45,
+        "wall_ms": 3210,
+        "timings": {
+          "captureMs": 25.0999999998603,
+          "compressMs": 15.600000000093132,
+          "storeMs": 0.8999999999068677,
+          "totalMs": 48.699999999953434
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x061.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21859,
+        "renderer_exited": true,
+        "tab_pss_bytes": 61528064,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 882856550,
+        "tree_pss_after": 833809817,
+        "tree_saved_bytes": 49046733,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 79.71,
+        "wall_ms": 3255,
+        "timings": {
+          "captureMs": 26.4000000001397,
+          "compressMs": 19.199999999953434,
+          "storeMs": 1.1000000000931323,
+          "totalMs": 56
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x062.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21883,
+        "renderer_exited": true,
+        "tab_pss_bytes": 62784512,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 833674649,
+        "tree_pss_after": 792196915,
+        "tree_saved_bytes": 41477734,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 66.06,
+        "wall_ms": 3175,
+        "timings": {
+          "captureMs": 22.9000000001397,
+          "compressMs": 14.300000000046566,
+          "storeMs": 1,
+          "totalMs": 44.9000000001397
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x063.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21896,
+        "renderer_exited": true,
+        "tab_pss_bytes": 59018240,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 773379891,
+        "tree_pss_after": 732071116,
+        "tree_saved_bytes": 41308775,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 69.99,
+        "wall_ms": 3232,
+        "timings": {
+          "captureMs": 26.0999999998603,
+          "compressMs": 20.100000000093132,
+          "storeMs": 2.3999999999068677,
+          "totalMs": 56.799999999813735
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x064.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21910,
+        "renderer_exited": true,
+        "tab_pss_bytes": 61058048,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 705804697,
+        "tree_pss_after": 667546624,
+        "tree_saved_bytes": 38258073,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 62.66,
+        "wall_ms": 3178,
+        "timings": {
+          "captureMs": 18.399999999906868,
+          "compressMs": 15.100000000093132,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 41.5
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x065.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21924,
+        "renderer_exited": true,
+        "tab_pss_bytes": 63572992,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 667000217,
+        "tree_pss_after": 628566425,
+        "tree_saved_bytes": 38433792,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 60.46,
+        "wall_ms": 3204,
+        "timings": {
+          "captureMs": 25.699999999953434,
+          "compressMs": 20.800000000046566,
+          "storeMs": 1.3999999999068677,
+          "totalMs": 55.60000000009313
+        },
+        "attributed": true
+      },
+      {
+        "url": "http://x066.lto.test:8123/heavy.html",
+        "ok": true,
+        "renderer_pid": 21950,
+        "renderer_exited": true,
+        "tab_pss_bytes": 67396608,
+        "tab_pss_after_bytes": 0,
+        "tree_pss_before": 626475008,
+        "tree_pss_after": 584793702,
+        "tree_saved_bytes": 41681306,
+        "process_saved_pct": 100,
+        "tree_saved_pct": 61.84,
+        "wall_ms": 3194,
+        "timings": {
+          "captureMs": 26.100000000093132,
+          "compressMs": 19.699999999953434,
+          "storeMs": 1.3000000000465661,
+          "totalMs": 54.39999999990687
+        },
+        "attributed": true
+      }
+    ]
+  },
+  "notes": [
+    "0 tab(s) unattributed or failed"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 8,
+    "fixture": "heavy.html",
+    "attribution": "per-renderer PSS"
+  }
+}

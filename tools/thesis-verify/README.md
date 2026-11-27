@@ -14,71 +14,60 @@ nothing is ever deleted.
 
 ## Prerequisites
 
-The suite runs on **Linux and Windows**. Everything is Python standard library
-except `websocket-client`; no external `zstd` binary is required.
+The suite runs on **Linux and Windows** with a single runtime: **Bun 1.4+**.
+No Node.js, npm, Python, venv, `websocket-client`, `smem`, or `zstd` CLI is
+needed. The only other requirement is a real browser (Chrome 160+ dev channel
+recommended, or Edge). `zstd`, if installed, is used only as an optional
+cross-check for T09.
 
-| Tool | Why | Linux | Windows |
-|---|---|---|---|
-| Python 3.10+ with `venv` | harness runtime | preinstalled | install from python.org (`py -3`) |
-| `websocket-client` | drives Chrome over CDP | `python3 -m venv tools/thesis-verify/.venv && tools/thesis-verify/.venv/bin/pip install websocket-client` | `py -3 -m venv tools\thesis-verify\.venv` then `tools\thesis-verify\.venv\Scripts\pip.exe install websocket-client` |
-| Google Chrome 160+ (or Edge) | real browser under test | `google-chrome-unstable` (dev channel) | install Chrome or Edge; auto-detected |
-| `node` + npm | builds the extension (`tsc`, `vite build`) | preinstalled | install Node 20+ |
-| `smem` | per-process PSS — the Linux memory metric | `smem` package | not used (Working Set via PowerShell/CIM) |
-| `zstd` (optional) | cross-checks T09 bytes against a standalone decoder | optional | optional |
+Install Bun once:
 
-The harness auto-detects the Chrome binary on `PATH` (Linux) or in the usual
+```sh
+curl -fsSL https://bun.com/install | bash            # macOS/Linux
+powershell -c "irm bun.sh/install.ps1|iex"           # Windows PowerShell
+```
+
+`bun install` (or `bun run setup`) installs the project dependencies. The OS
+launchers `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` / `bootstrap.cmd`
+will print the install command and ask before installing Bun.
+
+The harness auto-detects Chrome on `PATH` (Linux) or in the usual
 `Program Files` locations plus the `App Paths` registry key (Windows). Override
 with `--chrome`, including absolute Windows paths with spaces:
 
 ```powershell
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run `
-  --tests all --chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"
+bun run verify -- --tests all --chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"
 ```
 
 ## Commands
 
-Linux/macOS:
+These work identically in bash, cmd.exe and PowerShell:
 
 ```sh
-# build the extension first
-npx tsc --noEmit && npx vite build
-
-# full suite (T01..T10), ~30–45 min
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
-
-# subset / sizing options
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run \
-  --tests T01,T02 --tabs 50 --small-tabs 8 --bench-tabs 10 --cycles 20
-
-# regenerate the report for an existing run
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py report --run <run-id>
-
-# regenerate the cross-run index (runs automatically after every run, too)
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py summary
+bun run build                          # typecheck + Vite build → dist/
+bun run verify                         # full suite (T01..T10), ~30–45 min
+bun run verify -- --tests T01,T02      # subset
+bun run verify -- --tests T01,T02 --tabs 50 --small-tabs 8 --bench-tabs 10 --cycles 20
+bun run report -- --run <run-id>       # regenerate one run's report
+bun run summary                        # regenerate the cross-run index
 ```
 
-Windows (PowerShell) — the same commands with the venv path changed:
-
-```powershell
-npx tsc --noEmit; npx vite build
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run --tests all
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run --tests T01,T02 --tabs 50 --small-tabs 8 --bench-tabs 10 --cycles 20
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py report --run <run-id>
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py summary
-```
+You can also call the harness directly:
+`bun tools/thesis-verify/verify.ts run --tests all`.
 
 ## Development tests (no browser)
 
-The platform layer is unit-tested on both operating systems without launching
-Chrome. Both commands work identically in bash, cmd.exe and PowerShell:
+The extension contracts and the platform layer are tested with Bun's test
+runner. Both groups run on either OS without launching Chrome:
 
 ```sh
-npm test                                                  # extension contracts
-python -m unittest discover -s tools/thesis-verify/tests -v  # platform layer
+bun test                               # all tests
+bun test tools/thesis-verify/tests     # platform layer only
+bun run typecheck                      # extension + tooling
 ```
 
-CI (`.github/workflows/verify.yml`) runs `npm test`, `npm run build` and the
-Python tests on `ubuntu-latest` and `windows-latest`.
+CI (`.github/workflows/verify.yml`) runs these plus `bun run build` on
+`ubuntu-latest` and `windows-latest` using `oven-sh/setup-bun@v2`.
 
 Options: `--tabs` (T01/T06, default 50), `--small-tabs` (T05/T08, default 8),
 `--bench-tabs` (T07, default 10), `--cycles` (T10, default 20),
@@ -99,15 +88,15 @@ Options: `--tabs` (T01/T06, default 50), `--small-tabs` (T05/T08, default 8),
 | T09 | Determinism: 3 freezes of the same page → identical bytes | 1 distinct SHA-256 (modulo runtime-only fields) |
 | T10 | Stress: 20 freeze/restore cycles, leak check | 0 errors, memory slope ≤ 1 %/cycle |
 
-Thresholds live in `THRESHOLDS` at the top of `verify.py` and are copied into
+Thresholds live in `THRESHOLDS` at the top of `verify.ts` and are copied into
 each run's `env.json`, so a record always states the bar it was judged against.
 
 ## Metric definitions (read before interpreting numbers)
 
 - **The metric depends on the operating system, and runs are labelled.**
-  Linux uses **PSS** (proportional set size, from `smem`). Windows has no PSS
-  equivalent, so it uses **Working Set (RSS)** for the Chrome process tree via
-  PowerShell/CIM (`bench.windows_snapshot`). Every `env.json` records `os`,
+  Linux uses **PSS** (proportional set size, from `/proc/<pid>/smaps_rollup`).
+  Windows has no PSS equivalent, so it uses **Working Set (RSS)** for the
+  Chrome process tree via PowerShell/CIM (`windowsSnapshot`). Every `env.json` records `os`,
   `memory_metric` and `memory_backend`; T05/T06/T07 records repeat
   `memory_metric`. **Do not compare a Windows number with a Linux number** —
   Working Set counts shared pages in every process, so it is systematically
@@ -115,7 +104,7 @@ each run's `env.json`, so a record always states the bar it was judged against.
   kept for compatibility with existing records; on Windows they hold Working
   Set values, and `memory_metric` is the authoritative label.
 - **Primary metric is per-process PSS** on Linux (proportional set size, from
-  `smem`); on Windows it is per-process Working Set. T05 attributes memory to
+  `/proc/<pid>/smaps_rollup`); on Windows it is per-process Working Set. T05 attributes memory to
   the tab's own renderer: freezing the tab kills the renderer, so
   `tab_reclaimed_pct` = share of that process's memory that came back.
   Tree-level delta (`mean_tree_saved_pct`) is recorded as a *conservative
@@ -150,7 +139,7 @@ each run's `env.json`, so a record always states the bar it was judged against.
 - **Chrome 160 blocks `--load-extension`.** The harness loads the extension
   via CDP `Extensions.loadUnpacked` (requires
   `--enable-unsafe-extension-debugging`); extension id
-  `ldblbaljliedojnkgjmealollolmbdga`. `bench.py` uses the same mechanism.
+  `ldblbaljliedojnkgjmealollolmbdga`; T07's A/B sessions use the same mechanism.
 - **`chrome.tabs.discard` replaces the tab id.** The harness polls and
   restores tabs by URL, not by id.
 - Fixtures are served from `http://127.0.0.1:8123`; distinct
@@ -161,7 +150,7 @@ each run's `env.json`, so a record always states the bar it was judged against.
   protocol a user triggers.
 - **Windows:** run from PowerShell. Chrome/Edge is found under
   `Program Files` (or `--chrome`); the browser is killed with
-  `taskkill /T /F`; total RAM comes from `GlobalMemoryStatusEx`; the version
+  `taskkill /T /F`; total RAM comes from PowerShell/CIM; the version
   string is read over CDP because `chrome.exe --version` prints nothing.
   T09 decompresses through the extension's own offscreen worker, so no
   external `zstd` is needed. Use the same Windows machine for before/after
@@ -172,7 +161,7 @@ each run's `env.json`, so a record always states the bar it was judged against.
 
 | File | Content |
 |---|---|
-| `env.json` | Chrome version, git revision, machine, thresholds |
+| `env.json` | Chrome version, git revision, Bun version, OS, memory metric, machine, thresholds |
 | `T01.json` … `T10.json` | one record per test: `result`, `metrics`, `notes`, `threshold`, timings |
 | `report.md` | aggregated table: test → result → key metric → threshold |
 | `T02-*.png`, `T07-*.json`, `T09-run*.zst/.json`, … | raw evidence referenced from the record's `artifacts` list |

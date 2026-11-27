@@ -36,12 +36,30 @@ loading, debugging, testing, and troubleshooting guide. For how the pipeline
 works internally — capture, compression, teardown, restore — see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Install Bun (one time)
+
+Bun is the only runtime this project needs — no Node.js, npm or Python.
+
+```sh
+# macOS / Linux
+curl -fsSL https://bun.com/install | bash
+
+# Windows (PowerShell)
+powershell -c "irm bun.sh/install.ps1|iex"
+```
+
+Verify with `bun --version`. You can also start every task through the OS
+launchers, which will install Bun for you after asking confirmation:
+`./scripts/bootstrap.sh ...` (Linux/macOS) or
+`.\scripts\bootstrap.ps1 ...` / `bootstrap.cmd` (Windows).
+
 Quick start:
 
 ```sh
-npm install
-npm run build     # typecheck + Vite build → dist/
-npm test          # contract tests
+bun install       # dependencies (once)
+bun run build     # typecheck + Vite build → dist/
+bun test          # contract + platform tests
+bun run doctor    # check Bun, Chrome/Edge and disk
 ```
 
 Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
@@ -56,18 +74,19 @@ Chrome over CDP and writes one JSON record per test plus an aggregated
 too, nothing is deleted. Cross-run index: [`results/verification/SUMMARY.md`](results/verification/SUMMARY.md).
 
 ```sh
-npx vite build   # the suite tests dist/
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
+bun run build     # the suite tests dist/
+bun run verify    # full recorded T01–T10 (needs Chrome/Edge installed)
+bun run summary   # regenerate the cross-run index
 ```
 
-The suite runs on Linux and Windows (PowerShell: use
-`tools\thesis-verify\.venv\Scripts\python.exe`). Linux measures PSS, Windows
-measures Working Set (RSS); every run records which metric it used, and the two
-are not directly comparable. Platform-layer unit tests need no browser:
+The same commands work on Linux and Windows. Linux measures PSS from
+`/proc/smaps_rollup`; Windows measures Working Set (RSS) via PowerShell/CIM.
+Every run records which metric it used, and the two are not directly
+comparable. No `smem`, `zstd` CLI, Python or venv is needed.
 
 ```sh
-npm test
-python -m unittest discover -s tools/thesis-verify/tests -v
+bun test          # extension contracts + platform unit tests
+bun run typecheck # extension and tooling
 ```
 
 Headline results (Linux PSS run; see SUMMARY.md for runs and thresholds):
@@ -95,34 +114,27 @@ public/
   compression-worker.js           classic Worker using vendored zstd
   zstd/                           vendored Emscripten glue + wasm
 tests/           contract and messaging tests
+scripts/         OS launchers + shared Bun task runner
 tools/
-  memory-bench/  external CPU/memory/GPU comparison tool
-  thesis-verify/ recorded verification suite (T01–T10, Linux + Windows)
+  thesis-verify/ recorded verification suite (T01–T10, Linux + Windows, Bun)
 PHASE.md         continuity log (verified state, known issues, next steps)
 ```
 
-## Memory / CPU / GPU Measurement
+## Memory / CPU Measurement
 
-Use the standalone Linux/Windows tool in [`tools/memory-bench/`](tools/memory-bench/README.md).
-It launches two identical browsing sessions (plain Chrome vs. Chrome with the
-unpacked extension), samples RSS/PSS memory, CPU, and GPU usage of the entire
-browser process tree, and writes a comparison report.
+Memory measurement is part of the Bun verification harness. **T07** runs two
+identical browsing sessions (plain Chrome vs. Chrome with the unpacked
+extension), samples the Chrome process tree, and records the baseline/extension
+ratio as `T07-baseline.json` / `T07-extension.json` inside each run directory.
 
 ```sh
-python3 tools/memory-bench/bench.py run --name baseline --fresh \
-  --url-file tools/memory-bench/urls.txt --out tools/memory-bench/results/baseline.json
-python3 tools/memory-bench/bench.py run --name extension --extension dist --fresh \
-  --url-file tools/memory-bench/urls.txt --out tools/memory-bench/results/extension.json
-python3 tools/memory-bench/bench.py compare \
-  tools/memory-bench/results/baseline.json tools/memory-bench/results/extension.json \
-  --out tools/memory-bench/results/comparison.md
+bun run verify -- --tests T07
 ```
 
-On Windows use `python` (or `py -3`) instead of `python3`; the tool selects
-the PowerShell/CIM backend automatically, where memory is Working Set (RSS)
-because Windows has no PSS. For whole-browser cgroup totals on Linux you can
-still use `systemd-run --user --scope` with `systemd-cgtop`. The extension
-itself does not collect metrics.
+Linux uses PSS from `/proc/<pid>/smaps_rollup`; Windows uses Working Set (RSS)
+via PowerShell/CIM because Windows has no PSS. For whole-browser cgroup totals
+on Linux you can still use `systemd-run --user --scope` with `systemd-cgtop`.
+The extension itself does not collect metrics.
 
 ## 14-Week Development Roadmap
 

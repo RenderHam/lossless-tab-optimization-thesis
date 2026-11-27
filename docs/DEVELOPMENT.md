@@ -10,14 +10,21 @@ continue the thesis work.
 
 | Requirement | Version / notes |
 |---|---|
-| Node.js | 20 or newer (verified on Node 26) |
-| npm | 10 or newer |
-| Chrome / Chromium | 116+ (Manifest V3) |
+| Bun | 1.4 or newer (the only runtime needed) |
+| Chrome / Chromium | 116+ (Manifest V3); 160+ dev channel used for verification |
+| PowerShell | built into Windows 10/11; used for Windows memory sampling |
 
-Building and loading the extension needs no Python, native compiler, or
-Emscripten toolchain. The zstd Wasm binary is vendored in `public/zstd/`.
-The verification suite (section 11) additionally needs Python 3.10+ and runs on
-both Linux and Windows.
+No Node.js, npm, Python, venv, `smem` or `zstd` CLI is needed. The zstd Wasm
+binary is vendored in `public/zstd/`. Install Bun once:
+
+```sh
+curl -fsSL https://bun.com/install | bash          # macOS/Linux
+powershell -c "irm bun.sh/install.ps1|iex"         # Windows PowerShell
+```
+
+Alternatively run `./scripts/bootstrap.sh` (or `.\scripts\bootstrap.ps1` /
+`bootstrap.cmd`) — it prints the install command and asks before installing
+Bun, then delegates every task to `scripts/cli.ts`.
 
 ---
 
@@ -25,31 +32,39 @@ both Linux and Windows.
 
 ```sh
 cd ~/Project/lossless-tab-optimization-thesis
-npm install
+bun install
 ```
 
-This installs Vite, CRXJS, TypeScript, `idb-keyval`, and `@bokuweb/zstd-wasm`.
+This installs Vite, CRXJS, TypeScript, `idb-keyval`, `@bokuweb/zstd-wasm` and
+Bun's type definitions. On Windows the same command works in PowerShell.
 The npm package's web entry is broken; we only use it as the source of the
 vendored Emscripten glue and wasm in `public/zstd/` — do not try to import it
 directly in browser code.
 
-### Available npm scripts
+### Available Bun scripts
+
+All scripts delegate to `scripts/cli.ts`, so they behave identically on Linux,
+macOS and Windows.
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Vite dev server (useful for popup/UI iteration) |
-| `npm run build` | `tsc --noEmit` then `vite build` → `dist/` |
-| `npm run typecheck` | TypeScript only |
-| `npm test` | Runs every `*.test.mjs` with `node --test` (no shell glob, so it works in cmd.exe/PowerShell too) |
+| `bun run setup` | Install dependencies, then run `doctor` |
+| `bun run dev` | Vite dev server (useful for popup/UI iteration) |
+| `bun run build` | `tsc --noEmit` then `vite build` → `dist/` |
+| `bun run typecheck` | Typecheck both the extension and the verification tooling |
+| `bun test` | All `*.test.mjs` / `*.test.ts` files (extension + platform layer) |
+| `bun run doctor` | Report Bun version, Chrome/Edge, disk and memory backend |
+| `bun run verify` | Full recorded T01–T10 suite |
+| `bun run summary` | Regenerate `results/verification/SUMMARY.md` |
 
-**Always use `npm run build` before loading the extension.** A successful run
+**Always use `bun run build` before loading the extension.** A successful run
 prints a clean Vite asset list; `dist/` is a build artifact and is gitignored.
 
 ---
 
 ## 3. Loading and reloading the extension
 
-1. Run `npm run build`.
+1. Run `bun run build`.
 2. Open `chrome://extensions`.
 3. Enable **Developer mode**.
 4. Click **Load unpacked** and select the `dist/` directory (not the repo root).
@@ -213,118 +228,89 @@ held in memory only during freeze/restore.
 ## 9. Testing
 
 ```sh
-npm test                       # contract tests (Node test runner)
-npx tsc --noEmit               # typecheck
-python -m unittest discover -s tools/thesis-verify/tests -v  # platform layer
+bun test              # extension contracts + platform layer (no browser)
+bun run typecheck     # extension and verification tooling
+bun run build         # typecheck + Vite build
 
 # full browser suite (recorded; see section 11)
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
+bun run verify
 ```
 
 Tests are source-contract checks plus real VM simulations of `offscreen.js`.
 They verify constants, batching math, base64 round-trip, and the absence of
-ML/probabilistic code. The Python tests exercise the Linux and Windows branches
-of `tools/thesis-verify/platform_support.py` with fakes — no browser launch.
-The recorded suite in section 11 drives a real Chrome end to end; for quick
-manual checks, load `dist/` and try Freeze/Restore.
+ML/probabilistic code. `tools/thesis-verify/tests/platform_support.test.ts`
+exercises both the Linux and Windows branches of the platform layer with
+injected fakes — no browser, PowerShell or Python needed. The recorded suite
+in section 11 drives a real Chrome end to end; for quick manual checks, load
+`dist/` and try Freeze/Restore.
 
-All three commands work unchanged in PowerShell; on Windows use
-`python` (or the venv's `tools\thesis-verify\.venv\Scripts\python.exe`). CI runs
-them on `ubuntu-latest` and `windows-latest` (`.github/workflows/verify.yml`).
+All commands work unchanged in PowerShell. CI runs them on `ubuntu-latest` and
+`windows-latest` with `oven-sh/setup-bun@v2`
+(`.github/workflows/verify.yml`).
 
 ---
 
-## 10. Memory / CPU / GPU measurement (external tool)
+## 10. Memory / CPU measurement
 
-The extension does not collect metrics. Use `tools/memory-bench/bench.py`
-(Python 3.10+ standard library) — see
-[`tools/memory-bench/README.md`](../tools/memory-bench/README.md) for details.
+The extension does not collect metrics. Measurement is built into the Bun
+verification harness: **T07** runs two identical sessions (plain Chrome vs.
+Chrome with `dist/` loaded), samples the Chrome process tree, and writes
+`T07-baseline.json` / `T07-extension.json` into each run directory.
 
 ```sh
-# 1. baseline session
-python3 tools/memory-bench/bench.py run --name baseline --fresh \
-  --url-file tools/memory-bench/urls.txt \
-  --out tools/memory-bench/results/baseline.json
-
-# 2. session with the extension loaded from dist/
-python3 tools/memory-bench/bench.py run --name extension --extension dist --fresh \
-  --url-file tools/memory-bench/urls.txt \
-  --out tools/memory-bench/results/extension.json
-
-# 3. comparison report
-python3 tools/memory-bench/bench.py compare \
-  tools/memory-bench/results/baseline.json tools/memory-bench/results/extension.json \
-  --out tools/memory-bench/results/comparison.md
+bun run verify -- --tests T07
 ```
 
-On Linux the tool samples RSS/PSS via `smem` when installed (otherwise
-`/proc`), CPU from process tick deltas, and GPU via `nvidia-smi` when available.
-For whole-browser cgroup totals, `systemd-run --user --scope` plus
-`systemd-cgtop --user` is also available.
-
-On Windows 11 the same commands work in PowerShell (use `python` instead of
-`python3`). The tool automatically uses a PowerShell/CIM backend: memory is
-Working Set (RSS) filtered to the Chrome tree (no PSS on Windows), CPU is
-`(Get-Process).CPU` deltas, and **GPU sampling is disabled** — use Task
-Manager → Performance → GPU for a visual reading. Chrome is auto-detected in
-its usual `Program Files` locations. Visual alternatives: Task Manager,
-Resource Monitor (`resmon.exe`), Process Explorer / System Informer, RAMMap.
-
-Use the same URL file, fresh profiles, equal settle time, and repeat 3–5 runs
-for the thesis numbers.
+Linux uses PSS from `/proc/<pid>/smaps_rollup` (no `smem` install); Windows uses
+Working Set (RSS) from PowerShell/CIM because Windows has no PSS. CPU comes
+from process tick deltas. For whole-browser cgroup totals on Linux you can
+still use `systemd-run --user --scope` with `systemd-cgtop --user`. On Windows,
+Task Manager / Resource Monitor (`resmon.exe`) give visual alternatives.
 
 ---
 
 ## 11. Recorded verification suite (T01–T10)
 
-`tools/thesis-verify/verify.py` runs the thesis verification matrix against
+`tools/thesis-verify/verify.ts` runs the thesis verification matrix against
 the built extension in a real Chrome, driving freeze/restore through the
 extension's own popup message protocol. Full matrix, thresholds, prerequisites
 and metric definitions:
 [`tools/thesis-verify/README.md`](../tools/thesis-verify/README.md).
 
 ```sh
-npx vite build   # suite tests dist/
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py report --run <run-id>
+bun run build
+bun run verify                         # all tests
+bun run verify -- --tests T09,T10      # subset
+bun run report -- --run <run-id>       # rebuild one report
+bun run summary                        # rebuild the cross-run index
 ```
 
-On Windows (PowerShell) the same commands use the venv script path:
-
-```powershell
-npx vite build
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py run --tests all
-tools\thesis-verify\.venv\Scripts\python.exe tools\thesis-verify\verify.py report --run <run-id>
-```
-
-Each run (pass **or fail**) is stored under `results/verification/<run-id>/`
-as one JSON record per test plus an aggregated `report.md`; an index of all
-runs is `results/verification/SUMMARY.md`. Nothing is ever deleted.
+The same commands work in PowerShell. Each run (pass **or fail**) is stored
+under `results/verification/<run-id>/` as one JSON record per test plus an
+aggregated `report.md`; an index of all runs is
+`results/verification/SUMMARY.md`. Nothing is ever deleted.
 
 Suite-specific environment facts:
 
-- Chrome 160 blocks `--load-extension`; the harness (and `bench.py` for T07)
-  load the extension via CDP `Extensions.loadUnpacked` with
-  `--enable-unsafe-extension-debugging`.
+- Chrome 160 blocks `--load-extension`; the harness loads the extension via
+  CDP `Extensions.loadUnpacked` with `--enable-unsafe-extension-debugging`.
 - `chrome.tabs.discard` assigns a **new tab id** each cycle; the harness
   tracks tabs by URL.
-- Fixtures run on `127.0.0.1:8123` with distinct `*.lto.test` hostnames
-  (`--host-resolver-rules`) so every tab gets its own renderer process and
-  memory can be attributed per tab.
-- The venv (`tools/thesis-verify/.venv/`) holds only `websocket-client`;
-  it and the Chrome profiles used by the suite are gitignored.
-- **Windows support lives in `tools/thesis-verify/platform_support.py`:**
+- Fixtures are served by `Bun.serve` on `127.0.0.1:8123` with distinct
+  `*.lto.test` hostnames (`--host-resolver-rules`) so every tab gets its own
+  renderer process and memory can be attributed per tab.
+- The Chrome profiles used by the suite are gitignored.
+- **Windows support lives in `tools/thesis-verify/platform_support.ts`:**
   Chrome discovery (PATH, `Program Files`, `App Paths` registry), total RAM
-  (`GlobalMemoryStatusEx`), process-tree launch/kill
-  (`CREATE_NEW_PROCESS_GROUP` + `taskkill /T /F`), Working Set sampling through
-  `bench.windows_snapshot`, and the T09 decompression message. T09 no longer
-  needs an external `zstd` binary on either OS.
+  (PowerShell/CIM), process-tree kill (`taskkill /T /F`), Working Set sampling
+  through PowerShell/CIM, and the T09 decompression message. T09 uses the
+  extension's own zstd worker — no external `zstd` binary.
 - **Linux and Windows memory numbers are not comparable.** Linux records PSS;
   Windows records Working Set (RSS). `env.json` and the T05/T06/T07 records
   carry `memory_metric`, and `SUMMARY.md` prints the platform for each run.
-- The platform layer is unit-tested with fakes on both operating systems:
-  `python -m unittest discover -s tools/thesis-verify/tests -v`. CI runs these
-  plus `npm test` and `npm run build` on Ubuntu and Windows.
+- The platform layer is unit-tested with injected fakes on both operating
+  systems: `bun test tools/thesis-verify/tests`. CI runs all tests, typechecks
+  and builds on Ubuntu and Windows with `oven-sh/setup-bun@v2`.
 
 ---
 

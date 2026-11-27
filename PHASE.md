@@ -39,21 +39,20 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 | `src/ui/popup.*` | Dashboard: manual freeze/restore per tab |
 | `tests/contracts.test.mjs` | Determinism/batching/protocol contracts |
 | `tests/messaging.test.mjs` | Base64 bridge round-trip through offscreen.js |
-| `tools/memory-bench/bench.py` | External CPU/memory comparison tool (Linux smem/proc, Windows PowerShell; GPU Linux-only); also runs T07's A/B sessions |
-| `tools/thesis-verify/verify.py` | Recorded verification harness: T01–T10, thresholds, JSON + `report.md` per run |
-| `tools/thesis-verify/platform_support.py` | Cross-platform layer: Chrome discovery, RAM, process-tree kill, memory sampling, T09 decompress message (Linux + Windows) |
-| `tools/thesis-verify/cdp.py` | Minimal CDP client + `Extensions.loadUnpacked` (Chrome 160 blocks `--load-extension`) |
-| `tools/thesis-verify/fixtures/` | Deterministic test pages served on `127.0.0.1:8123` |
-| `tools/thesis-verify/tests/` | Python unit tests for the platform layer (no browser) |
-| `.github/workflows/verify.yml` | CI matrix: Node tests + build + Python tests on Ubuntu and Windows |
+| `scripts/` | OS launchers (`.sh`, `.ps1`, `.cmd`) + shared Bun task runner `cli.ts` |
+| `tools/thesis-verify/verify.ts` | Bun/TypeScript recorded verification harness: T01–T10, thresholds, JSON + `report.md` per run |
+| `tools/thesis-verify/platform_support.ts` | Cross-platform layer: Chrome discovery, RAM, process-tree kill, memory sampling, T09 decompress message (Linux + Windows) |
+| `tools/thesis-verify/cdp.ts` | Minimal CDP client + `Extensions.loadUnpacked` (Chrome 160 blocks `--load-extension`) |
+| `tools/thesis-verify/fixtures/` | Deterministic test pages served via `Bun.serve` on `127.0.0.1:8123` |
+| `tools/thesis-verify/tests/` | Bun unit tests for the platform layer (no browser) |
+| `.github/workflows/verify.yml` | CI matrix: Bun tests, typecheck + build on Ubuntu and Windows |
 
 ## Verified State (verification suite complete)
 
-- `npx tsc --noEmit` → clean
-- `npx vite build` → succeeds, output in `dist/`
-- `npm test` (`node --test`) → 22/22 pass
-- `python -m unittest discover -s tools/thesis-verify/tests` → 29/29 pass
-  (Linux and Windows code paths, fakes only, no browser)
+- `bun run typecheck` → clean (extension and tooling)
+- `bun run build` → succeeds, output in `dist/`
+- `bun test` → 34/34 pass (22 extension contracts + 12 platform-layer tests)
+  covering both Linux and Windows code paths with fakes, no browser
 - Vendored zstd wasm round-trip verified in a Node VM harness:
   14,500 B → 47 B compressed → byte-exact restoration
 - Browser smoke test: the first run exposed `Worker is not defined` in the MV3
@@ -61,28 +60,29 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
   Binary data loss across Chrome's JSON-serialized messaging was fixed with
   base64 encoding. Auto-restore on tab activation and form-key fallback added.
 - The in-extension benchmark feature was removed at the owner's request;
-  memory measurement is now done externally (`smem`/cgroups v2 on Linux,
-  PowerShell/CIM on Windows).
+  memory measurement now lives in the Bun harness (`/proc/smaps_rollup` on
+  Linux, PowerShell/CIM Working Set on Windows).
 - **Automated verification suite T01–T10 is built, run, and recorded** under
   `tools/thesis-verify/` (see its README for the matrix and thresholds).
   Every run — pass or fail — is stored as JSON + `report.md` in
   `results/verification/<run-id>/`; index in `results/verification/SUMMARY.md`.
   Final results: T01–T10 all PASS, including the two thesis claims:
   T05 per-tab (100 % of the tab's renderer PSS reclaimed) and T06 aggregate
-  **80.49 % across 50 tabs** (claim: 80 %).
-- Chrome 160 blocks `--load-extension`; the harness (and `bench.py`) load the
-  extension via CDP `Extensions.loadUnpacked` with
-  `--enable-unsafe-extension-debugging`.
-- **Windows support is implemented, unit-tested, but not yet run on Windows.**
-  OS-specific behaviour lives in `tools/thesis-verify/platform_support.py`
-  (Chrome discovery incl. `Program Files`/`App Paths`, RAM via
-  `GlobalMemoryStatusEx`, `taskkill /T /F`, Working Set sampling via
-  `bench.windows_snapshot`, T09 through the extension's own zstd worker). The
-  Linux and Windows branches are covered by 29 Python unit tests with fakes;
-  this machine is Linux, so no full T01–T10 run has been recorded on Windows
-  yet. Linux records PSS, Windows records Working Set (RSS) — not comparable.
-- `npm test` now uses `node --test` without a shell glob, so it works in
-  cmd.exe/PowerShell as well as bash.
+  **80.49 % across 50 tabs** (claim: 80 %). The Bun/TypeScript port reproduced
+  this in run `20261127223949` (T06 80.51 %) with T07 rerun in
+  `20261127224909`; all ten latest records are PASS.
+- Chrome 160 blocks `--load-extension`; the harness loads the extension via
+  CDP `Extensions.loadUnpacked` with `--enable-unsafe-extension-debugging`.
+- **The whole development/tooling chain now uses Bun only.** No Node.js, npm,
+  Python, venv, `smem` or `zstd` CLI is needed. `scripts/bootstrap.sh` /
+  `.ps1` / `.cmd` install Bun only after confirmation, then delegate to
+  `scripts/cli.ts`. CI uses `oven-sh/setup-bun@v2` on Ubuntu and Windows.
+- **Windows support is implemented and unit-tested, but not yet run on a
+  Windows machine.** OS behaviour lives in `platform_support.ts`: Chrome
+  discovery (`Program Files`/`App Paths`), RAM and Working Set via
+  PowerShell/CIM, process-tree kill via `taskkill /T /F`, and T09 through the
+  extension's own zstd worker. Linux records PSS, Windows records Working Set
+  (RSS) — not comparable.
 - **Run history (nothing deleted):** the 2026-11-25 full run
   `20261125-142656` passed T01–T07, then Chrome was lost before T08–T10 when
   the machine was low on disk and memory (T07's extension session dropped to
@@ -97,22 +97,23 @@ Pipeline: **Capture → Compress → Terminate → Lazy Restore.**
 ## How To Verify
 
 ```sh
-npm install            # once per machine
-npx tsc --noEmit       # typecheck
-npm test               # contract + messaging tests (22 tests)
-python -m unittest discover -s tools/thesis-verify/tests -v  # platform layer (29 tests)
-npx vite build         # extension bundle → dist/
+# one time: curl -fsSL https://bun.com/install | bash   (Windows: see README)
+bun install            # dependencies
+bun test               # 34 tests: contracts + platform layer
+bun run typecheck      # extension and tooling
+bun run build          # extension bundle → dist/
 
 # full recorded verification suite (T01..T10), ~30–45 min
-tools/thesis-verify/.venv/bin/python tools/thesis-verify/verify.py run --tests all
+bun run verify
 ```
 
-On Windows (PowerShell) use `tools\thesis-verify\.venv\Scripts\python.exe` in
-place of `tools/thesis-verify/.venv/bin/python`; the other commands are
-identical. The suite writes `results/verification/<run-id>/` (JSON per test +
-`report.md`). See `tools/thesis-verify/README.md` for the matrix, thresholds,
-and metric definitions. Load `dist/` via `chrome://extensions` → Developer
-mode → Load unpacked for manual checks.
+The same commands work in PowerShell. The OS launchers
+`./scripts/bootstrap.sh` / `.\scripts\bootstrap.ps1` do the Bun install
+(after asking) and then run the same CLI. The suite writes
+`results/verification/<run-id>/` (JSON per test + `report.md`). See
+`tools/thesis-verify/README.md` for the matrix, thresholds, and metric
+definitions. Load `dist/` via `chrome://extensions` → Developer mode → Load
+unpacked for manual checks.
 
 ## Known Notes
 

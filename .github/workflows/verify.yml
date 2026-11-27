@@ -2,11 +2,11 @@ name: verify
 
 # Cross-platform checks for the extension and the thesis tooling.
 #
+# One runtime (Bun) installs dependencies, runs the tests, typechecks and
+# builds on both Ubuntu and Windows. No Python, npm or Node setup is needed.
 # This workflow deliberately does NOT launch a browser: the recorded
-# verification matrix (T01..T10) needs a real Chrome and is run manually on
-# the machine under test, with its results committed under
-# results/verification/. Here we only prove that the code builds and that the
-# platform layer behaves the same on Linux and Windows.
+# verification matrix (T01..T10) is run manually on the machine under test
+# and its results are committed under results/verification/.
 
 on:
   push:
@@ -24,39 +24,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "22"
-          cache: npm
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      - name: Node tests (extension contracts)
-        run: npm test
+      - name: Tests (extension + platform layer)
+        run: bun test
 
-      - name: Typecheck and build
-        run: npm run build
+      - name: Typecheck (extension + tooling)
+        run: bun run typecheck
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install harness dependency
-        run: python -m pip install websocket-client
-
-      - name: Python syntax check
-        run: >-
-          python -m py_compile
-          tools/thesis-verify/verify.py
-          tools/thesis-verify/cdp.py
-          tools/thesis-verify/platform_support.py
-          tools/memory-bench/bench.py
+      - name: Build
+        run: bun run build
 
       - name: Tool CLI smoke check (no browser launched)
         run: |
-          python tools/thesis-verify/verify.py --help
-          python tools/memory-bench/bench.py --help
-
-      - name: Python unit tests (platform layer)
-        run: python -m unittest discover -s tools/thesis-verify/tests -v
+          bun scripts/cli.ts doctor
+          bun tools/thesis-verify/verify.ts summary

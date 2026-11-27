@@ -1,0 +1,14 @@
+{
+  "test": "T09",
+  "name": "determinism of capture+compression",
+  "run": "20261127223822",
+  "started": "2026-11-27T22:38:23.282Z",
+  "finished": "2026-11-27T22:38:24.486Z",
+  "threshold": "",
+  "result": "error",
+  "metrics": {},
+  "notes": [],
+  "artifacts": [],
+  "config": {},
+  "error": "Error: page eval failed: SyntaxError: missing ) after argument list"
+}

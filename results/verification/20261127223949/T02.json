@@ -1,0 +1,294 @@
+{
+  "test": "T02",
+  "name": "byte-exact fidelity after freeze/restore",
+  "run": "20261127223949",
+  "started": "2026-11-27T22:40:25.601Z",
+  "finished": "2026-11-27T22:41:31.338Z",
+  "threshold": "html == AND form values == AND scroll ±2px for every tab",
+  "result": "pass",
+  "metrics": {
+    "tabs": [
+      "http://x051.lto.test:8123/form.html",
+      "http://x052.lto.test:8123/dynamic.html"
+    ],
+    "comparisons": {
+      "http://x051.lto.test:8123/form.html": {
+        "html_equal": true,
+        "forms_equal": true,
+        "scroll_ok": true,
+        "scroll_before": [
+          0,
+          1200
+        ],
+        "scroll_after": [
+          0,
+          1200
+        ],
+        "elements_before": 40,
+        "elements_after": 40,
+        "html_diff": "",
+        "forms_before": [
+          {
+            "i": 0,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "f-name",
+            "name": "",
+            "v": "typed-name-42"
+          },
+          {
+            "i": 1,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "",
+            "name": "email",
+            "v": "srv@example.test"
+          },
+          {
+            "i": 2,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "f-nick",
+            "name": "",
+            "v": "typed-nick-7"
+          },
+          {
+            "i": 3,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "",
+            "name": "",
+            "v": ""
+          },
+          {
+            "i": 4,
+            "tag": "INPUT",
+            "type": "password",
+            "id": "f-pw",
+            "name": "",
+            "v": "typed-secret"
+          },
+          {
+            "i": 5,
+            "tag": "INPUT",
+            "type": "checkbox",
+            "id": "f-agree",
+            "name": "",
+            "v": false
+          },
+          {
+            "i": 6,
+            "tag": "INPUT",
+            "type": "radio",
+            "id": "",
+            "name": "plan",
+            "v": true
+          },
+          {
+            "i": 7,
+            "tag": "INPUT",
+            "type": "radio",
+            "id": "",
+            "name": "plan",
+            "v": false
+          },
+          {
+            "i": 8,
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "id": "f-bio",
+            "name": "",
+            "v": "typed bio line one\nline two"
+          },
+          {
+            "i": 9,
+            "tag": "SELECT",
+            "type": "select-one",
+            "id": "f-country",
+            "name": "",
+            "v": "br"
+          },
+          {
+            "i": 10,
+            "tag": "SELECT",
+            "type": "select-multiple",
+            "id": "f-langs",
+            "name": "",
+            "v": [
+              "de",
+              "pt"
+            ]
+          }
+        ],
+        "forms_after": [
+          {
+            "i": 0,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "f-name",
+            "name": "",
+            "v": "typed-name-42"
+          },
+          {
+            "i": 1,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "",
+            "name": "email",
+            "v": "srv@example.test"
+          },
+          {
+            "i": 2,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "f-nick",
+            "name": "",
+            "v": "typed-nick-7"
+          },
+          {
+            "i": 3,
+            "tag": "INPUT",
+            "type": "text",
+            "id": "",
+            "name": "",
+            "v": ""
+          },
+          {
+            "i": 4,
+            "tag": "INPUT",
+            "type": "password",
+            "id": "f-pw",
+            "name": "",
+            "v": "typed-secret"
+          },
+          {
+            "i": 5,
+            "tag": "INPUT",
+            "type": "checkbox",
+            "id": "f-agree",
+            "name": "",
+            "v": false
+          },
+          {
+            "i": 6,
+            "tag": "INPUT",
+            "type": "radio",
+            "id": "",
+            "name": "plan",
+            "v": true
+          },
+          {
+            "i": 7,
+            "tag": "INPUT",
+            "type": "radio",
+            "id": "",
+            "name": "plan",
+            "v": false
+          },
+          {
+            "i": 8,
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "id": "f-bio",
+            "name": "",
+            "v": "typed bio line one\nline two"
+          },
+          {
+            "i": 9,
+            "tag": "SELECT",
+            "type": "select-one",
+            "id": "f-country",
+            "name": "",
+            "v": "br"
+          },
+          {
+            "i": 10,
+            "tag": "SELECT",
+            "type": "select-multiple",
+            "id": "f-langs",
+            "name": "",
+            "v": [
+              "de",
+              "pt"
+            ]
+          }
+        ]
+      },
+      "http://x052.lto.test:8123/dynamic.html": {
+        "html_equal": true,
+        "forms_equal": true,
+        "scroll_ok": true,
+        "scroll_before": [
+          0,
+          800
+        ],
+        "scroll_after": [
+          0,
+          800
+        ],
+        "elements_before": 205,
+        "elements_after": 205,
+        "html_diff": "",
+        "forms_before": [
+          {
+            "i": 0,
+            "tag": "INPUT",
+            "type": "search",
+            "id": "d-search",
+            "name": "",
+            "v": ""
+          }
+        ],
+        "forms_after": [
+          {
+            "i": 0,
+            "tag": "INPUT",
+            "type": "search",
+            "id": "d-search",
+            "name": "",
+            "v": ""
+          }
+        ]
+      }
+    },
+    "restore_responses": {
+      "http://x051.lto.test:8123/form.html": {
+        "ok": true,
+        "hydration": {
+          "mode": "overlay",
+          "totalNodes": 0,
+          "batches": 0,
+          "elapsedMs": 3.699999999953434,
+          "maxBatchMs": 0,
+          "formApplied": 11,
+          "formMissing": []
+        },
+        "totalMs": 154.20000000018626
+      },
+      "http://x052.lto.test:8123/dynamic.html": {
+        "ok": true,
+        "hydration": {
+          "mode": "overlay",
+          "totalNodes": 0,
+          "batches": 0,
+          "elapsedMs": 2.3999999999068677,
+          "maxBatchMs": 0,
+          "formApplied": 1,
+          "formMissing": []
+        },
+        "totalMs": 145.4000000001397
+      }
+    }
+  },
+  "notes": [],
+  "artifacts": [
+    "T02-before-x051.png",
+    "T02-before-x052.png"
+  ],
+  "config": {
+    "fixture": [
+      "form.html",
+      "dynamic.html"
+    ]
+  }
+}

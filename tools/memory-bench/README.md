@@ -1,107 +1,22 @@
-# Resource comparison tool
+# Memory comparison
 
-`bench.py` launches two independent Chrome sessions and measures the whole
-browser process tree (renderers, GPU process, extension service worker,
-offscreen host) while the same set of tabs is open:
-
-- **memory** — RSS and PSS via `smem` when installed (otherwise
-  `/proc/<pid>/smaps_rollup`). smem's process list is filtered to the browser's
-  own PIDs, so **other applications are never counted**. PSS is the fair
-  metric for multi-process browsers.
-- **CPU** — `utime + stime` deltas from `/proc/<pid>/stat`
-- **GPU** — NVIDIA `nvidia-smi` utilization and memory, when available
-  (system-wide, so treat it as context rather than browser-only cost)
-
-The `compare` command writes a short **"In plain words"** summary followed by
-the detailed numbers table. Python 3.10+ standard library only; no pip
-packages. `smem` is optional but used automatically when present.
-
-## 1. Build the extension first
+Memory measurement is now part of the Bun verification harness — **T07**
+launches two identical browsing sessions (plain Chrome vs. Chrome with the
+unpacked extension), samples the Chrome process tree, and writes
+`T07-baseline.json` / `T07-extension.json` into each run directory under
+`results/verification/<run-id>/`.
 
 ```sh
-npm run build     # produces dist/
+bun run build
+bun run verify -- --tests T07
 ```
 
-## 2. Run the baseline (plain Chrome)
+Linux uses PSS from `/proc/<pid>/smaps_rollup`; Windows uses Working Set (RSS)
+through PowerShell/CIM because Windows has no PSS equivalent. Every record
+states its `memory_metric` — Windows and Linux numbers are not comparable.
+The comparison ratio is recorded in `T07.json` and shown in
+`results/verification/SUMMARY.md`.
 
-```sh
-python3 tools/memory-bench/bench.py run \
-  --name baseline \
-  --fresh \
-  --url-file tools/memory-bench/urls.txt \
-  --out tools/memory-bench/results/baseline.json
-```
-
-## 3. Run with the extension
-
-```sh
-python3 tools/memory-bench/bench.py run \
-  --name extension \
-  --extension dist \
-  --fresh \
-  --url-file tools/memory-bench/urls.txt \
-  --out tools/memory-bench/results/extension.json
-```
-
-`--extension dist` adds `--load-extension=<dist>` and
-`--disable-extensions-except=<dist>` to the Chrome command line. Recent
-Chrome versions may ignore `--load-extension`; if so, install the unpacked
-extension manually in the profile at `--profile-dir` (default
-`tools/memory-bench/profiles/run` — use a **different** profile dir for each
-run, or keep `--fresh` and preinstall into both profiles before measuring).
-
-## 4. Compare
-
-```sh
-python3 tools/memory-bench/bench.py compare \
-  tools/memory-bench/results/baseline.json \
-  tools/memory-bench/results/extension.json \
-  --out tools/memory-bench/results/comparison.md
-```
-
-The report shows mean/peak memory, CPU, and GPU for both runs with deltas.
-Negative memory deltas mean the extension saved memory; positive CPU/GPU
-deltas mean it cost extra work.
-
-## Options worth tuning
-
-| Flag | Default | Meaning |
-|---|---|---|
-| `--warmup` | 10 s | wait for pages to settle before sampling |
-| `--interval` | 1 s | seconds between samples |
-| `--samples` | 60 | number of samples (60 s at default interval) |
-| `--chrome` | auto | path to browser binary (auto-detects `google-chrome`, `google-chrome-stable`, `google-chrome-unstable`, `chromium`, `chromium-browser`, `microsoft-edge`) |
-| `--memory-source` | auto | Linux: `smem` if installed, otherwise `proc`. Windows: `powershell` (automatic). |
-| `--profile-dir` | `tools/memory-bench/profiles/run` | Chrome `--user-data-dir` |
-| `--fresh` | off | delete the profile before launch |
-
-## Fair-test checklist
-
-- Use the **same URL file**, tab count, window size, and machine state.
-- Use a **fresh profile** per run, or the same profile prepared identically.
-- Disable Chrome Memory Saver in both runs.
-- Let pages settle (`--warmup`) before sampling.
-- Repeat 3–5 times and report means; single runs are noisy.
-- Freeze inactive tabs in the extension run before or during sampling — the
-  tool deliberately does not click the popup for you.
-
-## Windows 11
-
-The same commands work in PowerShell (use `python` or `py -3` instead of
-`python3`). On Windows:
-
-- `--memory-source` is automatically `powershell` (no `smem` needed).
-- Memory is **Working Set (RSS)** from PowerShell/CIM; Windows has no PSS
-  equivalent. The report says so explicitly.
-- Only Chrome processes started with the tool's `--profile-dir` are counted,
-  so other applications are excluded.
-- **GPU sampling is disabled** on Windows. Use Task Manager → Performance →
-  GPU if you need a visual reading.
-- Chrome is auto-detected at the usual `Program Files` locations; override
-  with `--chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"`.
-- Run PowerShell normally; elevated/admin rights may be needed to read memory
-  details of processes owned by other users.
-
-Visual alternatives on Windows: **Task Manager** (`Ctrl+Shift+Esc`),
-**Resource Monitor** (`resmon.exe`), **Process Explorer / System Informer**,
-and **RAMMap** (Sysinternals).
+No Python, `smem`, or standalone `zstd` binary is needed. The former Python
+`bench.py` tool has been removed; the `urls.txt` and `results/` files here are
+kept as historical sample inputs/results.

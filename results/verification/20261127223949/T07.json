@@ -1,0 +1,14 @@
+{
+  "test": "T07",
+  "name": "extension idle memory overhead",
+  "run": "20261127223949",
+  "started": "2026-11-27T22:47:16.246Z",
+  "finished": "2026-11-27T22:47:41.781Z",
+  "threshold": "",
+  "result": "error",
+  "metrics": {},
+  "notes": [],
+  "artifacts": [],
+  "config": {},
+  "error": "TypeError: Spread syntax requires ...iterable[Symbol.iterator] to be a function"
+}

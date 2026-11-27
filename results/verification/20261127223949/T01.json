@@ -1,0 +1,729 @@
+{
+  "test": "T01",
+  "name": "freeze success rate",
+  "run": "20261127223949",
+  "started": "2026-11-27T22:39:50.148Z",
+  "finished": "2026-11-27T22:40:25.253Z",
+  "threshold": "success rate >= 95% of eligible tabs",
+  "result": "pass",
+  "metrics": {
+    "attempted": 50,
+    "eligible": 50,
+    "succeeded": 50,
+    "excluded_auto_discarded": 0,
+    "failed": 0,
+    "success_rate": 1,
+    "freeze_total_ms": [
+      76.4000000001397,
+      17.399999999906868,
+      28,
+      19.899999999906868,
+      22.699999999953434,
+      23.699999999953434,
+      15.699999999953434,
+      17.700000000186265,
+      18.100000000093132,
+      16.800000000046566,
+      18.399999999906868,
+      18.300000000046566,
+      17.5,
+      17,
+      17.300000000046566,
+      17.300000000046566,
+      17.4000000001397,
+      15.099999999860302,
+      17.300000000046566,
+      17.299999999813735,
+      18.300000000046566,
+      17.399999999906868,
+      18.799999999813735,
+      18.399999999906868,
+      17.300000000046566,
+      17.100000000093132,
+      17.0999999998603,
+      17.800000000046566,
+      17.300000000046566,
+      16,
+      17.300000000046566,
+      17.300000000046566,
+      17.100000000093132,
+      16.100000000093132,
+      17,
+      18.699999999953434,
+      16.9000000001397,
+      16.5,
+      18,
+      17.699999999953434,
+      16.600000000093132,
+      17.899999999906868,
+      16.899999999906868,
+      19.5,
+      19.100000000093132,
+      19.699999999953434,
+      17.9000000001397,
+      20.600000000093132,
+      19.699999999953434,
+      18.5
+    ],
+    "rows": [
+      {
+        "url": "http://x001.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 15.399999999906868,
+          "compressMs": 7.199999999953434,
+          "storeMs": 8,
+          "totalMs": 76.4000000001397
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x002.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 5,
+          "compressMs": 2.2000000001862645,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 17.399999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x003.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 8.400000000139698,
+          "compressMs": 2.5,
+          "storeMs": 1.1999999999534339,
+          "totalMs": 28
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x004.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.099999999860302,
+          "compressMs": 1.9000000001396984,
+          "storeMs": 1,
+          "totalMs": 19.899999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x005.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 5.899999999906868,
+          "compressMs": 2.1000000000931323,
+          "storeMs": 0.7999999998137355,
+          "totalMs": 22.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x006.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 912,
+        "timings": {
+          "captureMs": 8.599999999860302,
+          "compressMs": 1.6000000000931323,
+          "storeMs": 0.6999999999534339,
+          "totalMs": 23.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x007.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.900000000139698,
+          "compressMs": 1.5999999998603016,
+          "storeMs": 0.9000000001396984,
+          "totalMs": 15.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x008.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 3.9000000001396984,
+          "compressMs": 1.8000000000465661,
+          "storeMs": 0.7999999998137355,
+          "totalMs": 17.700000000186265
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x009.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 912,
+        "timings": {
+          "captureMs": 4.400000000139698,
+          "compressMs": 1.5,
+          "storeMs": 0.7999999998137355,
+          "totalMs": 18.100000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x010.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.6000000000931323,
+          "compressMs": 2.199999999953434,
+          "storeMs": 1,
+          "totalMs": 16.800000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x011.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.099999999860302,
+          "compressMs": 1.4000000001396984,
+          "storeMs": 0.7999999998137355,
+          "totalMs": 18.399999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x012.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.600000000093132,
+          "compressMs": 1.8000000000465661,
+          "storeMs": 0.7999999998137355,
+          "totalMs": 18.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x013.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.8999999999068677,
+          "compressMs": 1.4000000001396984,
+          "storeMs": 0.8999999999068677,
+          "totalMs": 17.5
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x014.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.9000000001396984,
+          "compressMs": 1.1999999999534339,
+          "storeMs": 0.8999999999068677,
+          "totalMs": 17
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x015.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 908,
+        "timings": {
+          "captureMs": 4.699999999953434,
+          "compressMs": 1.6999999999534339,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x016.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 3.6000000000931323,
+          "compressMs": 1.3000000000465661,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x017.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.100000000093132,
+          "compressMs": 1.5,
+          "storeMs": 0.8999999999068677,
+          "totalMs": 17.4000000001397
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x018.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 3.699999999953434,
+          "compressMs": 1.6999999999534339,
+          "storeMs": 1.1000000000931323,
+          "totalMs": 15.099999999860302
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x019.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 912,
+        "timings": {
+          "captureMs": 3.6000000000931323,
+          "compressMs": 1.3999999999068677,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x020.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 5.199999999953434,
+          "compressMs": 1.3000000000465661,
+          "storeMs": 0.8999999999068677,
+          "totalMs": 17.299999999813735
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x021.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.699999999953434,
+          "compressMs": 1.3000000000465661,
+          "storeMs": 1,
+          "totalMs": 18.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x022.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 3.5999999998603016,
+          "compressMs": 1.5,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 17.399999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x023.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 7.2999999998137355,
+          "compressMs": 1.4000000001396984,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 18.799999999813735
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x024.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4.300000000046566,
+          "compressMs": 1.5999999998603016,
+          "storeMs": 0.9000000001396984,
+          "totalMs": 18.399999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x025.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.800000000046566,
+          "compressMs": 1.3999999999068677,
+          "storeMs": 1.1000000000931323,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x026.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.199999999953434,
+          "compressMs": 1.5999999998603016,
+          "storeMs": 0.8000000000465661,
+          "totalMs": 17.100000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x027.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 4.199999999953434,
+          "compressMs": 1.9000000001396984,
+          "storeMs": 1,
+          "totalMs": 17.0999999998603
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x028.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 3.699999999953434,
+          "compressMs": 1.5999999998603016,
+          "storeMs": 1,
+          "totalMs": 17.800000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x029.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 912,
+        "timings": {
+          "captureMs": 4.199999999953434,
+          "compressMs": 1.4000000001396984,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x030.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4.5,
+          "compressMs": 1.6999999999534339,
+          "storeMs": 1,
+          "totalMs": 16
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x031.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 908,
+        "timings": {
+          "captureMs": 3.7999999998137355,
+          "compressMs": 1.5,
+          "storeMs": 1.3000000000465661,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x032.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 3.9000000001396984,
+          "compressMs": 1.3999999999068677,
+          "storeMs": 0.8999999999068677,
+          "totalMs": 17.300000000046566
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x033.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4.7000000001862645,
+          "compressMs": 1.5999999998603016,
+          "storeMs": 1,
+          "totalMs": 17.100000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x034.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 3.8999999999068677,
+          "compressMs": 1.7000000001862645,
+          "storeMs": 1,
+          "totalMs": 16.100000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x035.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.9000000001396984,
+          "compressMs": 1.1999999999534339,
+          "storeMs": 1,
+          "totalMs": 17
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x036.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4.899999999906868,
+          "compressMs": 1.3000000000465661,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 18.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x037.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4.5,
+          "compressMs": 1.5999999998603016,
+          "storeMs": 1.2000000001862645,
+          "totalMs": 16.9000000001397
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x038.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.8999999999068677,
+          "compressMs": 1.8000000000465661,
+          "storeMs": 1,
+          "totalMs": 16.5
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x039.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 3.800000000046566,
+          "compressMs": 1.3999999999068677,
+          "storeMs": 1,
+          "totalMs": 18
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x040.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.300000000046566,
+          "compressMs": 1.5,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 17.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x041.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 4,
+          "compressMs": 2.300000000046566,
+          "storeMs": 1,
+          "totalMs": 16.600000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x042.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.8999999999068677,
+          "compressMs": 1.7000000001862645,
+          "storeMs": 1.0999999998603016,
+          "totalMs": 17.899999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x043.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 3.800000000046566,
+          "compressMs": 1.1999999999534339,
+          "storeMs": 1.1999999999534339,
+          "totalMs": 16.899999999906868
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x044.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 4.300000000046566,
+          "compressMs": 1.5,
+          "storeMs": 1.5,
+          "totalMs": 19.5
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x045.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.2999999998137355,
+          "compressMs": 1.7000000001862645,
+          "storeMs": 1.2999999998137355,
+          "totalMs": 19.100000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x046.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4,
+          "compressMs": 1.4000000001396984,
+          "storeMs": 1,
+          "totalMs": 19.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x047.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 4.399999999906868,
+          "compressMs": 1.4000000001396984,
+          "storeMs": 1,
+          "totalMs": 17.9000000001397
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x048.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 909,
+        "timings": {
+          "captureMs": 4.300000000046566,
+          "compressMs": 1.9000000001396984,
+          "storeMs": 1.2999999998137355,
+          "totalMs": 20.600000000093132
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x049.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 911,
+        "timings": {
+          "captureMs": 4.399999999906868,
+          "compressMs": 1.3999999999068677,
+          "storeMs": 1.2000000001862645,
+          "totalMs": 19.699999999953434
+        },
+        "meta_present": true
+      },
+      {
+        "url": "http://x050.lto.test:8123/light.html",
+        "ok": true,
+        "rawBytes": 5517,
+        "compressedBytes": 910,
+        "timings": {
+          "captureMs": 4.199999999953434,
+          "compressMs": 1.3999999999068677,
+          "storeMs": 1.4000000001396984,
+          "totalMs": 18.5
+        },
+        "meta_present": true
+      }
+    ]
+  },
+  "notes": [
+    "all eligible tabs froze"
+  ],
+  "artifacts": [],
+  "config": {
+    "tabs": 50,
+    "fixture": "light.html"
+  }
+}
